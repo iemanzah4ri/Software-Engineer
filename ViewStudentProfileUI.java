@@ -5,8 +5,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.util.List;
 
 public class ViewStudentProfileUI extends JFrame {
@@ -110,18 +108,15 @@ public class ViewStudentProfileUI extends JFrame {
 
     private void loadStudentList(String query) {
         tableModel.setRowCount(0);
-
         List<String[]> matches = DBHelper.getMatchesForSupervisor(supervisorId);
         
         for (String[] match : matches) {
             String studentId = match[1]; 
-            
             String[] studentUser = DBHelper.getUserById(studentId);
             
             if (studentUser != null) {
                 boolean matchesSearch = query.isEmpty() || 
                                       studentUser[3].toLowerCase().contains(query.toLowerCase());
-                
                 if (matchesSearch) {
                     tableModel.addRow(new Object[]{studentUser[0], studentUser[3], studentUser[4]});
                 }
@@ -137,17 +132,16 @@ public class ViewStudentProfileUI extends JFrame {
             txtContact.setText(user[7]);
             txtAddress.setText(user[8]); 
 
-            // Load Profile Picture
             File pfp = DBHelper.getProfileImage(id);
             if (pfp != null && pfp.exists()) {
-                try {
-                    BufferedImage img = ImageIO.read(pfp);
-                    if (img != null) {
-                        Image scaled = img.getScaledInstance(lblImage.getWidth(), lblImage.getHeight(), Image.SCALE_SMOOTH);
-                        lblImage.setIcon(new ImageIcon(scaled));
-                        lblImage.setText("");
-                    }
-                } catch (Exception e) {
+                // Use explicit size 120x120
+                ImageIcon icon = new ImageIcon(pfp.getAbsolutePath());
+                if (icon.getIconWidth() > 0) {
+                    Image img = icon.getImage();
+                    Image scaled = img.getScaledInstance(120, 120, Image.SCALE_SMOOTH);
+                    lblImage.setIcon(new ImageIcon(scaled));
+                    lblImage.setText("");
+                } else {
                     lblImage.setIcon(null);
                     lblImage.setText("Error Loading");
                 }

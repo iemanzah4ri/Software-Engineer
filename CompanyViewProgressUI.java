@@ -26,7 +26,6 @@ public class CompanyViewProgressUI extends JFrame {
         JButton btnBack = new JButton("Back Home");
         btnBack.addActionListener(e -> {
             this.dispose();
-            new CompanySupervisorHome().setVisible(true);
         });
         footer.add(btnBack);
         add(footer);

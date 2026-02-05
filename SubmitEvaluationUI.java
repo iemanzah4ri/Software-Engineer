@@ -48,7 +48,6 @@ public class SubmitEvaluationUI extends JFrame {
         
         btnBack.addActionListener(e -> {
             this.dispose();
-            new CompanySupervisorHome().setVisible(true);
         });
 
         footer.add(btnSubmit);

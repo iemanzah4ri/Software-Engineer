@@ -2,9 +2,8 @@ import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
@@ -17,17 +16,14 @@ public class DBHelper {
     private static final String LOG_FILE = DB_FOLDER + File.separator + "logbooks.txt";
     private static final String MATCH_FILE = DB_FOLDER + File.separator + "matches.txt";
     private static final String ATTENDANCE_FILE = DB_FOLDER + File.separator + "attendance.txt";
-    private static final String FEEDBACK_FILE = DB_FOLDER + File.separator + "feedback.txt";
+    
+    private static final String COMPANY_FEEDBACK_FILE = DB_FOLDER + File.separator + "company_feedback.txt";
+    private static final String ACADEMIC_FEEDBACK_FILE = DB_FOLDER + File.separator + "academic_feedback.txt";
 
     static {
-        File folder = new File(DB_FOLDER);
-        if (!folder.exists()) folder.mkdir();
-        
-        File resFolder = new File(RESUME_FOLDER);
-        if (!resFolder.exists()) resFolder.mkdir();
-
-        File pfpFolder = new File(PFP_FOLDER);
-        if (!pfpFolder.exists()) pfpFolder.mkdir();
+        new File(DB_FOLDER).mkdirs();
+        new File(RESUME_FOLDER).mkdirs();
+        new File(PFP_FOLDER).mkdirs();
     }
 
     private static long generateNextId(String filePath, int idIndex) {
@@ -41,575 +37,333 @@ public class DBHelper {
                     if (data.length > idIndex) {
                         try {
                             long currentId = Long.parseLong(data[idIndex]);
-                            if (currentId > maxId) {
-                                maxId = currentId;
-                            }
-                        } catch (NumberFormatException e) {
-                        }
+                            if (currentId > maxId) maxId = currentId;
+                        } catch (NumberFormatException e) {}
                     }
                 }
-            } catch (IOException e) { e.printStackTrace(); }
+            } catch (IOException e) {}
         }
         return maxId + 1;
     }
 
-    public static void saveUser(String username, String password, String fullname, String intake, String role) {
-        long id = generateNextId(FILE_NAME, 0);
-        saveUserFull(id, username, password, fullname, intake, role, "", "", "", "Not Placed");
+    // --- GENERIC FILE HELPERS ---
+    private static List<String> readFile(String path) {
+        List<String> lines = new ArrayList<>();
+        File file = new File(path);
+        if (!file.exists()) return lines;
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) lines.add(line);
+        } catch (IOException e) {}
+        return lines;
     }
 
-    public static void saveCompanySupervisor(String username, String password, String fullname, String position, String company, String email) {
-        long id = generateNextId(FILE_NAME, 0);
-        saveUserFull(id, username, password, fullname, position, "Company Supervisor", email, "", company, "N/A");
+    private static void writeFile(String path, List<String> lines) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(path))) {
+            for (String line : lines) out.println(line);
+        } catch (IOException e) {}
     }
 
-    private static void saveUserFull(long id, String username, String password, String fullname, String col4, String role, 
-                                     String col6, String col7, String col8, String col9) {
-        try (FileWriter fw = new FileWriter(FILE_NAME, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            
-            String safeUser = username.replace(",", "");
-            String safePass = password.replace(",", "");
-            String safeName = fullname.replace(",", "");
-            
-            String formattedId = String.format("%07d", id);
+    // --- USER MANAGEMENT ---
+    public static void saveUser(String user, String pass, String name, String intake, String role) {
+        saveUserFull(user, pass, name, intake, role, "", "", "", "Not Placed");
+    }
+    public static void saveCompanySupervisor(String user, String pass, String name, String pos, String comp, String email) {
+        saveUserFull(user, pass, name, pos, "Company Supervisor", email, "", comp, "N/A");
+    }
+    private static void saveUserFull(String user, String pass, String name, String c4, String role, String c6, String c7, String c8, String c9) {
+        long id = generateNextId(FILE_NAME, 0);
+        String formattedId = String.format("%07d", id);
+        try (FileWriter fw = new FileWriter(FILE_NAME, true); PrintWriter out = new PrintWriter(fw)) {
+            out.println(formattedId + "," + user + "," + pass + "," + name + "," + (c4==null?"":c4) + "," + role + "," + 
+                        (c6==null?"":c6) + "," + (c7==null?"":c7) + "," + (c8==null?"":c8) + "," + (c9==null?"":c9));
+        } catch (IOException e) {}
+    }
 
-            out.println(formattedId + "," + safeUser + "," + safePass + "," + safeName + "," + 
-                       (col4==null?"":col4) + "," + role + "," + 
-                       (col6==null?"":col6) + "," + (col7==null?"":col7) + "," + 
-                       (col8==null?"":col8) + "," + (col9==null?"":col9));
-        } catch (IOException e) { e.printStackTrace(); }
+    public static String[] getUserById(String id) {
+        for (String line : readFile(FILE_NAME)) {
+            String[] data = line.split(",");
+            if (data.length > 0 && data[0].equals(id)) return data;
+        }
+        return null;
     }
 
     public static List<String[]> getUsersByRole(String role, String query) {
         List<String[]> results = new ArrayList<>();
-        File file = new File(FILE_NAME);
-        if (!file.exists()) return results;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 6) { 
-                    if (data[5].equalsIgnoreCase(role)) {
-                        if (query.isEmpty() || data[3].toLowerCase().contains(query.toLowerCase()) || data[0].equals(query)) {
-                            results.add(new String[]{data[0], data[1], data[3], (data.length > 8 ? data[8] : "")});
-                        }
-                    }
-                }
+        for (String line : readFile(FILE_NAME)) {
+            String[] data = line.split(",");
+            if (data.length >= 6 && data[5].equalsIgnoreCase(role)) {
+                if (query.isEmpty() || data[3].toLowerCase().contains(query.toLowerCase()) || data[0].equals(query))
+                    results.add(new String[]{data[0], data[1], data[3], (data.length > 8 ? data[8] : "")});
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        }
         return results;
     }
 
-    public static String[] getUserById(String id) {
-        File file = new File(FILE_NAME);
-        if (!file.exists()) return null;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length > 0 && data[0].equals(id)) {
-                    String[] fullData = new String[10];
-                    for(int i=0; i<10; i++) fullData[i] = (i < data.length) ? data[i] : "";
-                    return fullData;
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-        return null;
-    }
-
-    public static List<String[]> getAvailableStudents() {
-        List<String[]> list = new ArrayList<>();
-        File file = new File(FILE_NAME);
-        if (!file.exists()) return list;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 10 && data[5].equalsIgnoreCase("Student") && !data[9].equalsIgnoreCase("Placed")) {
-                    list.add(new String[]{data[0], data[3], data[4]}); 
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-        return list;
-    }
-
     public static void updateStudent(String id, String user, String pass, String name, String matric) {
-        String[] current = getUserById(id);
-        String email="", contact="", addr="", place="Not Placed";
-        if(current != null) { email=current[6]; contact=current[7]; addr=current[8]; place=current[9]; }
-        updateUser(id, user, pass, name, matric, "Student", email, contact, addr, place);
+        String[] c = getUserById(id);
+        if(c == null) return;
+        updateUser(id, user, pass, name, matric, "Student", c[6], c[7], c[8], c[9]);
     }
-
     public static void updateCompanySupervisor(String id, String user, String pass, String name, String pos, String comp, String email) {
         updateUser(id, user, pass, name, pos, "Company Supervisor", email, "", comp, "N/A");
     }
-    
     public static void updateAcademicSupervisor(String id, String user, String pass, String name) {
         updateUser(id, user, pass, name, "", "Academic Supervisor", "", "", "", "");
     }
-
-    public static void updateUser(String id, String username, String password, String fullname, String intake, String role, String email, String contact, String address, String placement) {
-        File file = new File(FILE_NAME);
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) lines.add(line);
-        } catch (IOException e) { return; }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String line : lines) {
-                String[] data = line.split(",");
-                if (data.length > 0 && data[0].equals(id)) {
-                    out.println(id + "," + username + "," + password + "," + fullname + "," + intake + "," + role + "," 
-                              + email + "," + contact + "," + address + "," + placement);
-                } else {
-                    out.println(line);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+    public static void updateUser(String id, String user, String pass, String name, String c4, String role, String c6, String c7, String c8, String c9) {
+        List<String> lines = readFile(FILE_NAME);
+        List<String> newLines = new ArrayList<>();
+        for (String line : lines) {
+            if (line.startsWith(id + ",")) {
+                newLines.add(id + "," + user + "," + pass + "," + name + "," + c4 + "," + role + "," + c6 + "," + c7 + "," + c8 + "," + c9);
+            } else newLines.add(line);
+        }
+        writeFile(FILE_NAME, newLines);
     }
-    
     public static void updateStudentPlacement(String studentId, String newStatus) {
         String[] s = getUserById(studentId);
         if(s!=null) updateUser(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], newStatus);
     }
 
-    public static void saveListing(String regNumber, String company, String location, String jobName, String jobDesc, String status) {
-        try (FileWriter fw = new FileWriter(LISTING_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            String safeDesc = jobDesc.replace("\n", " ").replace(",", ";"); 
-            String safeName = jobName.replace(",", " ");
-            out.println(regNumber + "," + company + "," + location + "," + safeName + "," + safeDesc + "," + status);
-        } catch (IOException e) { e.printStackTrace(); }
+    // --- LISTINGS & APPLICATIONS ---
+    public static void saveListing(String reg, String comp, String loc, String job, String desc, String status) {
+        try(FileWriter fw = new FileWriter(LISTING_FILE, true); PrintWriter out = new PrintWriter(fw)){
+            out.println(reg+","+comp+","+loc+","+job+","+desc.replace("\n", " ")+","+status);
+        } catch(IOException e){}
     }
-
     public static List<String[]> getAllListings() {
         List<String[]> list = new ArrayList<>();
-        File file = new File(LISTING_FILE);
-        if (!file.exists()) return list;
-
-        Set<String> filledRegNos = new HashSet<>();
-        File matchFile = new File(MATCH_FILE);
-        if (matchFile.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(matchFile))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] data = line.split(",");
-                    if (data.length >= 4) filledRegNos.add(data[3]); 
-                }
-            } catch (IOException e) { e.printStackTrace(); }
+        for(String line : readFile(LISTING_FILE)) {
+            String[] d = line.split(",");
+            if(d.length>=6) list.add(d);
         }
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 6) {
-                    if (filledRegNos.contains(data[0])) {
-                        data[5] = "Filled"; 
-                    }
-                    list.add(data);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
         return list;
     }
+    public static void approveListing(String r) { updateStatus(LISTING_FILE, r, 5, "Approved", 0); }
+    public static void rejectListing(String r) { updateStatus(LISTING_FILE, r, 5, "Rejected", 0); }
 
-    public static void approveListing(String regNumber) { updateListingStatus(regNumber, "Approved"); }
-    public static void rejectListing(String regNumber) { updateListingStatus(regNumber, "Rejected"); }
-
-    private static void updateListingStatus(String regNumber, String newStatus) {
-        File file = new File(LISTING_FILE);
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) lines.add(line);
-        } catch (IOException e) { return; }
-        
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String line : lines) {
-                String[] data = line.split(",");
-                if (data.length >= 6 && data[0].equals(regNumber)) {
-                    out.println(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + data[4] + "," + newStatus);
-                } else {
-                    out.println(line);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+    public static void applyForInternship(String sid, String reg, String comp) {
+        long id = generateNextId(APP_FILE, 0);
+        try(FileWriter fw = new FileWriter(APP_FILE, true); PrintWriter out = new PrintWriter(fw)){
+            out.println(String.format("%07d", id)+","+sid+","+reg+","+comp+",Pending");
+        } catch(IOException e){}
     }
 
-    public static void applyForInternship(String studentId, String regNumber, String companyName) {
-        long appId = generateNextId(APP_FILE, 0);
-        try (FileWriter fw = new FileWriter(APP_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            String formattedId = String.format("%07d", appId);
-            out.println(formattedId + "," + studentId + "," + regNumber + "," + companyName + ",Pending");
-        } catch (IOException e) { e.printStackTrace(); }
-    }
-
-    public static void approveApplication(String appId) {
-        File file = new File(APP_FILE);
-        List<String> lines = new ArrayList<>();
-        String studentId = "", regNo = "", companyName = "";
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 5 && data[0].equals(appId)) {
-                    studentId = data[1];
-                    regNo = data[2];
-                    companyName = data[3];
-                    lines.add(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + ",Approved");
-                } else {
-                    lines.add(line);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); return; }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String l : lines) out.println(l);
-        } catch (IOException e) { e.printStackTrace(); }
-
-        if (!studentId.isEmpty()) {
-            String[] student = getUserById(studentId);
-            List<String[]> listings = getAllListings();
-            String position = "Intern";
-            for (String[] l : listings) {
-                if (l[0].equals(regNo)) {
-                    position = l[3]; 
-                    break;
-                }
-            }
-            if (student != null) {
-                saveMatch(studentId, student[3], regNo, companyName, position);
+    public static void approveApplication(String appId, String companySvId) {
+        updateStatus(APP_FILE, appId, 4, "Approved", 0);
+        for(String line : readFile(APP_FILE)) {
+            String[] d = line.split(",");
+            if(d[0].equals(appId)) {
+                String sid = d[1];
+                String[] s = getUserById(sid);
+                String job = "Intern";
+                for(String[] lst : getAllListings()) if(lst[0].equals(d[2])) job = lst[3];
+                if(s!=null) saveMatch(sid, s[3], d[2], d[3], job, "N/A", companySvId);
+                break;
             }
         }
     }
-
-    public static boolean hasApplied(String studentId, String regNumber) {
-        File file = new File(APP_FILE);
-        if (!file.exists()) return false;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 3 && data[1].equals(studentId) && data[2].equals(regNumber)) return true;
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+    public static void rejectApplication(String appId) { updateStatus(APP_FILE, appId, 4, "Rejected", 0); }
+    public static boolean hasApplied(String sid, String reg) {
+        for(String line : readFile(APP_FILE)) {
+            String[] d = line.split(",");
+            if(d.length>=3 && d[1].equals(sid) && d[2].equals(reg)) return true;
+        }
         return false;
     }
-
-    public static List<String[]> getApplicationsByStudent(String studentId) {
+    public static List<String[]> getApplicationsByStudent(String sid) {
         List<String[]> list = new ArrayList<>();
-        File file = new File(APP_FILE);
-        if (!file.exists()) return list;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 5 && data[1].equals(studentId)) list.add(data);
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+        for(String line : readFile(APP_FILE)) {
+            String[] d = line.split(",");
+            if(d.length>=5 && d[1].equals(sid)) list.add(d);
+        }
         return list;
     }
 
-    public static boolean saveResume(File sourceFile, String studentId) {
-        String ext = "";
-        int i = sourceFile.getName().lastIndexOf('.');
-        if (i > 0) {
-            ext = sourceFile.getName().substring(i);
-        }
-        File destFile = new File(RESUME_FOLDER + File.separator + studentId + ext);
-        try {
-            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public static File getResumeFile(String studentId) {
-        File folder = new File(RESUME_FOLDER);
-        File[] files = folder.listFiles((dir, name) -> name.startsWith(studentId + "."));
-        if (files != null && files.length > 0) {
-            for(File f : files) {
-                if(!f.getName().contains("_profile")) return f;
+    // --- MATCHES ---
+    // Format: MatchID, StudentID, Name, RegNo, CompName, Job, Date, AcadSvID, CompSvID
+    public static List<String[]> getAllMatches() {
+        List<String[]> list = new ArrayList<>();
+        for (String line : readFile(MATCH_FILE)) {
+            String[] data = line.split(",", -1);
+            // AUTO-FIX: Pad old records to 9 columns
+            if (data.length < 9) {
+                String[] newData = Arrays.copyOf(data, 9);
+                if(data.length <= 7) newData[7] = "N/A"; // AcadSV
+                if(data.length <= 8) newData[8] = "N/A"; // CompSV
+                list.add(newData);
+            } else {
+                list.add(data);
             }
         }
-        return null;
+        return list;
     }
 
-    public static boolean saveProfileImage(File sourceFile, String studentId) {
-        String ext = "";
-        int i = sourceFile.getName().lastIndexOf('.');
-        if (i > 0) {
-            ext = sourceFile.getName().substring(i);
-        }
-        File destFile = new File(PFP_FOLDER + File.separator + studentId + "_profile" + ext);
-        try {
-            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public static void saveMatch(String sid, String sname, String reg, String cname, String job, String aid, String cid) {
+        long mid = generateNextId(MATCH_FILE, 0);
+        try(FileWriter fw = new FileWriter(MATCH_FILE, true); PrintWriter out = new PrintWriter(fw)){
+            out.println(String.format("%07d", mid)+","+sid+","+sname+","+reg+","+cname+","+job+","+LocalDate.now()+","+aid+","+cid);
+        } catch(IOException e){}
+        updateStudentPlacement(sid, "Placed");
     }
 
-    public static File getProfileImage(String studentId) {
-        File folder = new File(PFP_FOLDER);
-        File[] files = folder.listFiles((dir, name) -> name.startsWith(studentId + "_profile."));
-        if (files != null && files.length > 0) {
-            return files[0];
-        }
-        return null;
-    }
-
-    public static void saveMatch(String studentId, String studentName, String regNo, String companyName, String position) {
-        long matchId = generateNextId(MATCH_FILE, 0);
-        try (FileWriter fw = new FileWriter(MATCH_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            String formattedId = String.format("%07d", matchId);
-            out.println(formattedId + "," + studentId + "," + studentName + "," + regNo + "," + companyName + "," + position + "," + LocalDate.now());
-        } catch (IOException e) { e.printStackTrace(); }
-        updateStudentPlacement(studentId, "Placed");
-    }
-
+    // *** FIX: Robust Match Finding ***
     public static List<String[]> getMatchesForSupervisor(String supervisorId) {
         List<String[]> list = new ArrayList<>();
-        String[] supervisor = getUserById(supervisorId);
-        if (supervisor == null || supervisor.length <= 8) return list;
-        
-        String myCompany = supervisor[8];
-        File file = new File(MATCH_FILE);
-        if (!file.exists()) return list;
-        
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 6 && data[4].equalsIgnoreCase(myCompany)) {
-                    list.add(data);
-                }
+        String[] user = getUserById(supervisorId);
+        // Fallback name for legacy company matches
+        String compName = (user != null && user.length > 8) ? user[8] : "Unknown";
+
+        for (String[] m : getAllMatches()) {
+            boolean isAcademicMatch = m[7].equals(supervisorId);
+            boolean isCompanyMatch = m[8].equals(supervisorId);
+            // Legacy check: If CompanyID is N/A, check Company Name
+            boolean isLegacyCompanyMatch = m[8].equals("N/A") && m[4].equalsIgnoreCase(compName);
+
+            if (isAcademicMatch || isCompanyMatch || isLegacyCompanyMatch) {
+                list.add(m);
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        }
         return list;
     }
 
-    public static void saveLogbookEntry(String studentId, String date, String activity, String hours) {
-        long logId = generateNextId(LOG_FILE, 0);
-        try (FileWriter fw = new FileWriter(LOG_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            String formattedId = String.format("%07d", logId);
-            out.println(formattedId + "," + studentId + "," + date + "," + activity.replace(",", " ") + "," + hours + ",Pending");
-        } catch (IOException e) { e.printStackTrace(); }
+    public static List<String[]> getMatchesMissingSupervisor() {
+        List<String[]> list = new ArrayList<>();
+        for (String[] m : getAllMatches()) {
+            // Check if Academic SV column (7) is N/A or empty
+            if (m[7].trim().isEmpty() || m[7].equalsIgnoreCase("N/A")) list.add(m);
+        }
+        return list;
     }
-    
+
+    public static void assignAcademicSupervisor(String matchId, String acadSvId) {
+        List<String[]> matches = getAllMatches();
+        List<String> lines = new ArrayList<>();
+        for (String[] m : matches) {
+            if (m[0].equals(matchId)) {
+                m[7] = acadSvId; // Update ID
+            }
+            lines.add(String.join(",", m));
+        }
+        writeFile(MATCH_FILE, lines);
+    }
+
+    // --- LOGBOOKS & ATTENDANCE ---
+    public static void saveLogbookEntry(String sid, String date, String act, String hours) {
+        long id = generateNextId(LOG_FILE, 0);
+        try(FileWriter fw = new FileWriter(LOG_FILE, true); PrintWriter out = new PrintWriter(fw)){
+            out.println(String.format("%07d", id)+","+sid+","+date+","+act.replace(",", " ")+","+hours+",Pending");
+        } catch(IOException e){}
+    }
     public static List<String[]> getAllLogbooks() {
         List<String[]> list = new ArrayList<>();
-        File file = new File(LOG_FILE);
-        if (!file.exists()) return list;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 6) list.add(data);
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+        for(String line : readFile(LOG_FILE)) list.add(line.split(","));
         return list;
     }
-
-    public static List<String[]> getLogbooksByStudent(String studentId) {
+    public static List<String[]> getLogbooksByStudent(String sid) {
         List<String[]> list = new ArrayList<>();
-        File file = new File(LOG_FILE);
-        if (!file.exists()) return list;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 6) {
-                    if (studentId == null || data[1].equals(studentId)) {
-                        list.add(data);
-                    }
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+        for(String line : readFile(LOG_FILE)) {
+            String[] d = line.split(",");
+            if(sid == null || (d.length>=2 && d[1].equals(sid))) list.add(d);
+        }
         return list;
     }
-
-    public static void updateLogbookStatus(String logId, String newStatus) {
-        File file = new File(LOG_FILE);
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) lines.add(line);
-        } catch (IOException e) { return; }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String line : lines) {
-                String[] data = line.split(",");
-                if (data.length >= 6 && data[0].equals(logId)) {
-                    out.println(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + data[4] + "," + newStatus);
-                } else {
-                    out.println(line);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-    }
-
-    public static void updateLogbookEntry(String logId, String date, String activity, String hours) {
-        File file = new File(LOG_FILE);
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) lines.add(line);
-        } catch (IOException e) { return; }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String line : lines) {
-                String[] data = line.split(",");
-                if (data.length >= 6 && data[0].equals(logId)) {
-                    out.println(data[0] + "," + data[1] + "," + date + "," + activity.replace(",", " ") + "," + hours + "," + data[5]);
-                } else {
-                    out.println(line);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-    }
-
-    public static void saveAttendance(String studentId, String studentName, String date, String timeIn, String timeOut) {
-        List<String> lines = new ArrayList<>();
-        boolean updated = false;
-        File file = new File(ATTENDANCE_FILE);
-        if(file.exists()){
-            try(BufferedReader br = new BufferedReader(new FileReader(file))){
-                String line;
-                while((line = br.readLine()) != null){
-                    String[] data = line.split(",");
-                    if(data.length >= 7 && data[1].equals(studentId) && data[3].equals(date)){
-                        String newOut = (timeOut == null || timeOut.isEmpty()) ? data[5] : timeOut;
-                        String status = (newOut.equals("Pending")) ? "Pending" : "Completed";
-                        lines.add(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + data[4] + "," + newOut + "," + status);
-                        updated = true;
-                    } else lines.add(line);
-                }
-            } catch(IOException e){ e.printStackTrace(); }
+    public static void updateLogbookStatus(String logId, String status) { updateStatus(LOG_FILE, logId, 5, status, 0); }
+    public static void updateLogbookEntry(String logId, String d, String a, String h) {
+        List<String> lines = readFile(LOG_FILE);
+        List<String> newLines = new ArrayList<>();
+        for(String l : lines) {
+            String[] dt = l.split(",");
+            if(dt[0].equals(logId)) newLines.add(dt[0]+","+dt[1]+","+d+","+a+","+h+","+dt[5]);
+            else newLines.add(l);
         }
-        if(!updated && timeIn != null){
+        writeFile(LOG_FILE, newLines);
+    }
+
+    public static void saveAttendance(String sid, String sname, String date, String in, String out) {
+        List<String> lines = readFile(ATTENDANCE_FILE);
+        List<String> newLines = new ArrayList<>();
+        boolean updated = false;
+        for(String l : lines) {
+            String[] d = l.split(",");
+            if(d.length>=7 && d[1].equals(sid) && d[3].equals(date)) {
+                String nOut = (out==null || out.isEmpty()) ? d[5] : out;
+                String st = nOut.equals("Pending") ? "Pending" : "Completed";
+                newLines.add(d[0]+","+d[1]+","+d[2]+","+d[3]+","+d[4]+","+nOut+","+st);
+                updated = true;
+            } else newLines.add(l);
+        }
+        if(!updated && in!=null) {
             long id = generateNextId(ATTENDANCE_FILE, 0);
-            String formattedId = String.format("%07d", id);
-            lines.add(formattedId + "," + studentId + "," + studentName + "," + date + "," + timeIn + ",Pending,Pending");
+            newLines.add(String.format("%07d", id)+","+sid+","+sname+","+date+","+in+",Pending,Pending");
         }
-        try(PrintWriter out = new PrintWriter(new FileWriter(file))){
-            for(String l : lines) out.println(l);
-        } catch(IOException e){ e.printStackTrace(); }
+        writeFile(ATTENDANCE_FILE, newLines);
     }
-
-    public static List<String[]> getStudentAttendance(String studentId) {
+    public static List<String[]> getStudentAttendance(String sid) {
         List<String[]> list = new ArrayList<>();
-        File file = new File(ATTENDANCE_FILE);
-        if (!file.exists()) return list;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 7 && data[1].equals(studentId)) list.add(data);
-            }
-        } catch (IOException e) { e.printStackTrace(); }
+        for(String l : readFile(ATTENDANCE_FILE)) {
+            String[] d = l.split(",");
+            if(d.length>=7 && d[1].equals(sid)) list.add(d);
+        }
         return list;
     }
 
-    public static String[] getStudentFeedback(String studentId) {
-        File file = new File(FEEDBACK_FILE);
-        if (!file.exists()) return null;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 9 && data[1].equals(studentId)) return data;
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-        return null;
+    public static void saveCompanyFeedback(String sid, String sname, String cname, String sc, String fb) {
+        saveFeedback(COMPANY_FEEDBACK_FILE, sid, sname, cname, sc, fb);
+    }
+    public static void saveAcademicFeedback(String sid, String sname, String sc, String fb) {
+        saveFeedback(ACADEMIC_FEEDBACK_FILE, sid, sname, "Academic Supervisor", sc, fb);
+    }
+    private static void saveFeedback(String fp, String sid, String sname, String by, String sc, String fb) {
+        List<String> lines = readFile(fp);
+        List<String> newLines = new ArrayList<>();
+        boolean updated = false;
+        for(String l : lines) {
+            String[] d = l.split(",");
+            if(d.length>=6 && d[1].equals(sid)) {
+                d[4]=sc; d[5]=fb.replace(",", " "); newLines.add(String.join(",", d)); updated=true;
+            } else newLines.add(l);
+        }
+        if(!updated) {
+            long id = generateNextId(fp, 0);
+            newLines.add(String.format("%07d", id)+","+sid+","+sname+","+by+","+sc+","+fb.replace(",", " "));
+        }
+        writeFile(fp, newLines);
+    }
+    public static String[] getStudentFeedback(String sid) {
+        String cs="N/A", cf="N/A", cn="N/A", as="N/A", af="N/A";
+        for(String l : readFile(COMPANY_FEEDBACK_FILE)) {
+            String[] d = l.split(","); if(d.length>=6 && d[1].equals(sid)) { cn=d[3]; cs=d[4]; cf=d[5]; break; }
+        }
+        for(String l : readFile(ACADEMIC_FEEDBACK_FILE)) {
+            String[] d = l.split(","); if(d.length>=6 && d[1].equals(sid)) { as=d[4]; af=d[5]; break; }
+        }
+        if(cs.equals("N/A") && as.equals("N/A")) return null;
+        return new String[]{"0", sid, "Student", cn, "Completed", cs, as, cf, af};
     }
 
-    public static void saveCompanyFeedback(String studentId, String studentName,
-                                       String companyName, String score, String feedback) {
-        File file = new File(FEEDBACK_FILE);
-        List<String> lines = new ArrayList<>();
-        boolean updated = false;
-
-        if (file.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] data = line.split(",");
-                    if (data.length >= 9 && data[1].equals(studentId)) {
-                        data[3] = companyName;
-                        data[5] = score;
-                        data[7] = feedback.replace(",", " ");
-                        lines.add(String.join(",", data));
-                        updated = true;
-                    } else {
-                        lines.add(line);
-                    }
-                }
-            } catch (IOException e) { e.printStackTrace(); }
-        }
-
-        if (!updated) {
-            long id = generateNextId(FEEDBACK_FILE, 0);
-            String formattedId = String.format("%07d", id);
-            lines.add(formattedId + "," + studentId + "," + studentName + "," + companyName + ",Completed," +
-                      score + ",N/A," + feedback.replace(",", " ") + ",N/A");
-        }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String l : lines) out.println(l);
-        } catch (IOException e) { e.printStackTrace(); }
+    public static boolean saveResume(File s, String sid) { return saveFile(s, RESUME_FOLDER + File.separator + sid); }
+    public static boolean saveProfileImage(File s, String sid) { return saveFile(s, PFP_FOLDER + File.separator + sid + "_profile"); }
+    public static File getResumeFile(String sid) { 
+        File[] f = new File(RESUME_FOLDER).listFiles((d,n)->n.startsWith(sid+"."));
+        return (f!=null && f.length>0) ? f[0] : null; 
     }
-
-    public static void saveAcademicFeedback(String studentId, String studentName,
-                                            String score, String feedback) {
-        File file = new File(FEEDBACK_FILE);
-        List<String> lines = new ArrayList<>();
-        boolean updated = false;
-
-        if (file.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] data = line.split(",");
-                    if (data.length >= 9 && data[1].equals(studentId)) {
-                        data[6] = score;
-                        data[8] = feedback.replace(",", " ");
-                        lines.add(String.join(",", data));
-                        updated = true;
-                    } else {
-                        lines.add(line);
-                    }
-                }
-            } catch (IOException e) { e.printStackTrace(); }
+    public static File getProfileImage(String sid) { 
+        File[] f = new File(PFP_FOLDER).listFiles((d,n)->n.startsWith(sid+"_profile."));
+        return (f!=null && f.length>0) ? f[0] : null; 
+    }
+    private static boolean saveFile(File s, String d) {
+        String ext = ""; int i=s.getName().lastIndexOf('.'); if(i>0) ext=s.getName().substring(i);
+        try { Files.copy(s.toPath(), new File(d+ext).toPath(), StandardCopyOption.REPLACE_EXISTING); return true; } catch(IOException e){return false;}
+    }
+    private static void updateStatus(String fp, String id, int col, String val, int idCol) {
+        List<String> ln = new ArrayList<>();
+        for(String l : readFile(fp)) {
+            String[] d = l.split(",");
+            if(d.length>col && d[idCol].equals(id)) { d[col]=val; ln.add(String.join(",", d)); }
+            else ln.add(l);
         }
-
-        if (!updated) {
-            long id = generateNextId(FEEDBACK_FILE, 0);
-            String formattedId = String.format("%07d", id);
-            lines.add(formattedId + "," + studentId + "," + studentName + ",N/A,Completed,N/A," +
-                      score + ",N/A," + feedback.replace(",", " "));
-        }
-
-        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-            for (String l : lines) out.println(l);
-        } catch (IOException e) { e.printStackTrace(); }
+        writeFile(fp, ln);
     }
 }
