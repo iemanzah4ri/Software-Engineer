@@ -48,7 +48,7 @@ public class MatchingUI extends JFrame {
         middlePanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.setBorder(BorderFactory.createTitledBorder("Active Listings"));
+        rightPanel.setBorder(BorderFactory.createTitledBorder("Active Internship Listings"));
         listingModel = new DefaultTableModel(new String[]{"RegNo", "Company", "Job"}, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -107,21 +107,23 @@ public class MatchingUI extends JFrame {
 
     private void performMatch() {
         int studentRow = studentTable.getSelectedRow();
+        int supervisorRow = supervisorTable.getSelectedRow();
         int listingRow = listingTable.getSelectedRow();
 
-        if (studentRow == -1 || listingRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select at least a Student and a Listing.");
+        if (studentRow == -1 || supervisorRow == -1 || listingRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a Student, a Supervisor, and a Listing.");
             return;
         }
 
         String studentId = studentModel.getValueAt(studentRow, 0).toString();
         String studentName = studentModel.getValueAt(studentRow, 1).toString();
+        String supervisorName = supervisorModel.getValueAt(supervisorRow, 1).toString();
         String regNo = listingModel.getValueAt(listingRow, 0).toString();
         String companyName = listingModel.getValueAt(listingRow, 1).toString();
         String position = listingModel.getValueAt(listingRow, 2).toString();
 
         int confirm = JOptionPane.showConfirmDialog(this, 
-            "Match " + studentName + " with " + companyName + "?", 
+            "Match " + studentName + " with " + companyName + "?\nSupervisor: " + supervisorName, 
             "Confirm Match", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {

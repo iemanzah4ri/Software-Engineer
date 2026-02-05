@@ -5,30 +5,33 @@ public class CompanySupervisorHome extends JFrame {
 
     private String supervisorId;
     private String supervisorName;
+    private String companyName;
 
     public CompanySupervisorHome(String id) {
         this.supervisorId = id;
         loadSupervisorDetails();
         initComponents();
-        setSize(800, 600);
+        setSize(800, 650);
         setLocationRelativeTo(null);
     }
     
-    // Default constructor for testing (optional)
     public CompanySupervisorHome() {
         this.supervisorId = "0"; 
         this.supervisorName = "Unknown Supervisor";
+        this.companyName = "Unknown";
         initComponents();
-        setSize(800, 600);
+        setSize(800, 650);
         setLocationRelativeTo(null);
     }
 
     private void loadSupervisorDetails() {
         String[] data = DBHelper.getUserById(supervisorId);
         if (data != null) {
-            this.supervisorName = data[3]; // Column 3 is Full Name
+            this.supervisorName = data[3]; 
+            this.companyName = (data.length > 8) ? data[8] : "Unknown"; 
         } else {
             this.supervisorName = "Supervisor";
+            this.companyName = "Unknown";
         }
     }
 
@@ -42,15 +45,21 @@ public class CompanySupervisorHome extends JFrame {
         headerPanel.setPreferredSize(new Dimension(800, 80));
         headerPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 20));
 
-        JLabel lblWelcome = new JLabel("Welcome " + supervisorName); // Shows real name
+        JLabel lblWelcome = new JLabel("Welcome " + supervisorName + " (" + companyName + ")"); 
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         headerPanel.add(lblWelcome);
 
         add(headerPanel, BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(7, 1, 10, 10)); 
+        buttonPanel.setLayout(new GridLayout(8, 1, 10, 10)); 
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 150, 20, 150));
+
+        JButton btnManageApps = new JButton("Manage Student Applications");
+        btnManageApps.setBackground(new Color(144, 238, 144));
+        btnManageApps.addActionListener(e -> {
+            new CompanyManageApplicationsUI(companyName).setVisible(true);
+        });
 
         JButton btnViewAssigned = new JButton("View Assigned Student");
         JButton btnViewProfile = new JButton("View Student Profile");
@@ -61,12 +70,9 @@ public class CompanySupervisorHome extends JFrame {
         JButton btnLogout = new JButton("Log Out");
 
         btnViewAssigned.addActionListener(evt -> {
-            // new ViewAssignedStudentsUI().setVisible(true); 
-            // You can update this later if needed
             JOptionPane.showMessageDialog(this, "Feature in development (Requires link)");
         });
 
-        // Pass Supervisor Name to Verify UI
         btnVerifyLogbook.addActionListener(evt -> {
             new VerifyLogbookUI(supervisorName).setVisible(true);
         });
@@ -80,6 +86,7 @@ public class CompanySupervisorHome extends JFrame {
             new LoginForm().setVisible(true);
         });
 
+        buttonPanel.add(btnManageApps);
         buttonPanel.add(btnViewAssigned);
         buttonPanel.add(btnViewProfile);
         buttonPanel.add(btnVerifyLogbook);
