@@ -20,10 +20,6 @@ public class DBHelper {
         }
     }
 
-    // ==========================================
-    // SECTION 1: USER MANAGEMENT
-    // ==========================================
-
     public static void saveUser(String username, String password, String fullname, String intake, String role) {
         saveUserFull(username, password, fullname, intake, role, "N/A", "N/A", "N/A", "Not Placed");
     }
@@ -97,19 +93,15 @@ public class DBHelper {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
-                // Check if Role is Student AND Status (Index 9) is NOT "Placed"
                 if (data.length >= 10 && data[5].equalsIgnoreCase("Student") && !data[9].equalsIgnoreCase("Placed")) {
-                    list.add(new String[]{data[0], data[3], data[4]}); // ID, Name, Intake
+                    list.add(new String[]{data[0], data[3], data[4]}); 
                 }
             }
         } catch (IOException e) { e.printStackTrace(); }
         return list;
     }
 
-    // --- Specific Update Wrappers for UI ---
-    
     public static void updateStudent(String id, String user, String pass, String name, String matric) {
-        // Preserves other fields by reading them first or setting defaults
         String[] current = getUserById(id);
         String email="N/A", contact="N/A", addr="N/A", place="Not Placed";
         if(current != null) { email=current[6]; contact=current[7]; addr=current[8]; place=current[9]; }
@@ -124,7 +116,6 @@ public class DBHelper {
         updateUser(id, user, pass, name, "N/A", "Academic Supervisor", "N/A", "N/A", "N/A", "N/A");
     }
 
-    // Generic Update
     public static void updateUser(String id, String username, String password, String fullname, String intake, String role, String email, String contact, String address, String placement) {
         File file = new File(FILE_NAME);
         List<String> lines = new ArrayList<>();
@@ -150,10 +141,6 @@ public class DBHelper {
         String[] s = getUserById(studentId);
         if(s!=null) updateUser(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], newStatus);
     }
-
-    // ==========================================
-    // SECTION 2: LISTING MANAGEMENT
-    // ==========================================
 
     public static void saveListing(String regNumber, String company, String location, String job, String status) {
         try (FileWriter fw = new FileWriter(LISTING_FILE, true);
@@ -199,10 +186,6 @@ public class DBHelper {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    // ==========================================
-    // SECTION 3: APPLICATION MANAGEMENT
-    // ==========================================
-
     public static void applyForInternship(String studentId, String regNumber, String companyName) {
         try (FileWriter fw = new FileWriter(APP_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
@@ -210,6 +193,46 @@ public class DBHelper {
             long appId = System.currentTimeMillis() % 100000;
             out.println(appId + "," + studentId + "," + regNumber + "," + companyName + ",Pending");
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    public static void approveApplication(String appId) {
+        File file = new File(APP_FILE);
+        List<String> lines = new ArrayList<>();
+        String studentId = "", regNo = "", companyName = "";
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length >= 5 && data[0].equals(appId)) {
+                    studentId = data[1];
+                    regNo = data[2];
+                    companyName = data[3];
+                    lines.add(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + ",Approved");
+                } else {
+                    lines.add(line);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); return; }
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+            for (String l : lines) out.println(l);
+        } catch (IOException e) { e.printStackTrace(); }
+
+        if (!studentId.isEmpty()) {
+            String[] student = getUserById(studentId);
+            List<String[]> listings = getAllListings();
+            String position = "Intern";
+            for (String[] l : listings) {
+                if (l[0].equals(regNo)) {
+                    position = l[3];
+                    break;
+                }
+            }
+            if (student != null) {
+                saveMatch(studentId, student[3], regNo, companyName, position);
+            }
+        }
     }
 
     public static boolean hasApplied(String studentId, String regNumber) {
@@ -238,10 +261,6 @@ public class DBHelper {
         } catch (IOException e) { e.printStackTrace(); }
         return list;
     }
-
-    // ==========================================
-    // SECTION 4: LOGBOOK & ATTENDANCE
-    // ==========================================
 
     public static void saveLogbookEntry(String studentId, String date, String activity, String hours) {
         try (FileWriter fw = new FileWriter(LOG_FILE, true);
@@ -360,10 +379,6 @@ public class DBHelper {
         } catch (IOException e) { e.printStackTrace(); }
         return list;
     }
-
-    // ==========================================
-    // SECTION 5: MATCHING & FEEDBACK
-    // ==========================================
 
     public static void saveMatch(String studentId, String studentName, String regNo, String companyName, String position) {
         try (FileWriter fw = new FileWriter(MATCH_FILE, true);

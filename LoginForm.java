@@ -10,7 +10,6 @@ public class LoginForm extends javax.swing.JFrame {
         this.setLocation(dim.width/2-this.getSize().width/2,dim.height/2-this.getSize().height/2);
     }
 
-    // DO NOT MODIFY THIS SECTION - UI PRESERVED
     @SuppressWarnings("unchecked")
     private void initComponents() {
 
@@ -149,7 +148,6 @@ public class LoginForm extends javax.swing.JFrame {
 
         pack();
     }
-    // END OF UI CODE
 
     private void btnAdminLoginActionPerformed(java.awt.event.ActionEvent evt) {                                              
         String user = txtUsername.getText();
@@ -164,19 +162,41 @@ public class LoginForm extends javax.swing.JFrame {
     }                                             
 
     private void btnPMLoginActionPerformed(java.awt.event.ActionEvent evt) {                                           
-        if (checkLogin("Company Supervisor")) {
-            this.dispose();
-            // Ensure CompanySupervisorHome exists or create it
-             new CompanySupervisorHome().setVisible(true);
+        String inputUser = txtUsername.getText();
+        String inputPass = String.valueOf(txtPassword.getPassword());
+
+        List<String[]> users = DBHelper.getUsersByRole("Company Supervisor", "");
+        boolean found = false;
+
+        for (String[] u : users) {
+            String[] fullDetails = DBHelper.getUserById(u[0]);
+            if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
+                this.dispose();
+                new CompanySupervisorHome(u[0]).setVisible(true); // Pass the proper ID
+                found = true;
+                break;
+            }
         }
+        if (!found) JOptionPane.showMessageDialog(this, "Invalid Company Supervisor Credentials!");
     }                                          
 
     private void btnLecturerLoginActionPerformed(java.awt.event.ActionEvent evt) {                                                 
-        if (checkLogin("Academic Supervisor")) {
-            this.dispose();
-            // Ensure AcademicSupervisorHome exists or create it
-             new AcademicSupervisorHome().setVisible(true);
+        String inputUser = txtUsername.getText();
+        String inputPass = String.valueOf(txtPassword.getPassword());
+
+        List<String[]> users = DBHelper.getUsersByRole("Academic Supervisor", "");
+        boolean found = false;
+
+        for (String[] u : users) {
+            String[] fullDetails = DBHelper.getUserById(u[0]);
+            if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
+                this.dispose();
+                new AcademicSupervisorHome().setVisible(true); 
+                found = true;
+                break;
+            }
         }
+        if (!found) JOptionPane.showMessageDialog(this, "Invalid Academic Supervisor Credentials!");
     }                                                
 
     private void btnStudentLoginActionPerformed(java.awt.event.ActionEvent evt) {                                                
@@ -184,41 +204,18 @@ public class LoginForm extends javax.swing.JFrame {
         String inputPass = String.valueOf(txtPassword.getPassword());
 
         List<String[]> users = DBHelper.getUsersByRole("Student", "");
-        
         boolean found = false;
         for (String[] u : users) {
-            // u contains [ID, Username, Name, Company]
-            // We need full details to verify password
             String[] fullDetails = DBHelper.getUserById(u[0]);
             
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 found = true;
                 this.dispose();
-                // Pass both ID and Name to the constructor
                 new StudentHome(u[0], fullDetails[3]).setVisible(true); 
                 break;
             }
         }
-        
-        if (!found) {
-            JOptionPane.showMessageDialog(this, "Invalid Student Credentials!");
-        }
-    }
-
-    private boolean checkLogin(String role) {
-        String inputUser = txtUsername.getText();
-        String inputPass = String.valueOf(txtPassword.getPassword());
-
-        List<String[]> users = DBHelper.getUsersByRole(role, "");
-        
-        for (String[] u : users) {
-            String[] fullDetails = DBHelper.getUserById(u[0]);
-            if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
-                return true;
-            }
-        }
-        JOptionPane.showMessageDialog(this, "Invalid " + role + " Credentials!");
-        return false;
+        if (!found) JOptionPane.showMessageDialog(this, "Invalid Student Credentials!");
     }
 
     public static void main(String args[]) {
