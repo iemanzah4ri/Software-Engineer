@@ -1,10 +1,10 @@
 import java.io.*;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
@@ -480,4 +480,78 @@ public class DBHelper {
         } catch (IOException e) { e.printStackTrace(); }
         return null;
     }
+
+
+    public static void saveCompanyFeedback(String studentId, String studentName,
+                                       String companyName, String score, String feedback) {
+    File file = new File(FEEDBACK_FILE);
+    List<String> lines = new ArrayList<>();
+    boolean updated = false;
+
+    if (file.exists()) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length >= 9 && data[1].equals(studentId)) {
+                    // update company feedback
+                    data[3] = companyName;
+                    data[5] = score;
+                    data[7] = feedback.replace(",", " ");
+                    lines.add(String.join(",", data));
+                    updated = true;
+                } else {
+                    lines.add(line);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    if (!updated) {
+        long id = System.currentTimeMillis() % 100000;
+        lines.add(id + "," + studentId + "," + studentName + "," + companyName + ",Completed," +
+                  score + ",N/A," + feedback.replace(",", " ") + ",N/A");
+    }
+
+    try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+        for (String l : lines) out.println(l);
+    } catch (IOException e) { e.printStackTrace(); }
 }
+
+public static void saveAcademicFeedback(String studentId, String studentName,
+                                        String score, String feedback) {
+    File file = new File(FEEDBACK_FILE);
+    List<String> lines = new ArrayList<>();
+    boolean updated = false;
+
+    if (file.exists()) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length >= 9 && data[1].equals(studentId)) {
+                    // update academic feedback
+                    data[6] = score;
+                    data[8] = feedback.replace(",", " ");
+                    lines.add(String.join(",", data));
+                    updated = true;
+                } else {
+                    lines.add(line);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    if (!updated) {
+        long id = System.currentTimeMillis() % 100000;
+        lines.add(id + "," + studentId + "," + studentName + ",N/A,Completed,N/A," +
+                  score + ",N/A," + feedback.replace(",", " "));
+    }
+
+    try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+        for (String l : lines) out.println(l);
+    } catch (IOException e) { e.printStackTrace(); }
+}
+
+}
+
