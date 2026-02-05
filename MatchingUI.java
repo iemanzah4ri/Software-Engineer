@@ -6,8 +6,8 @@ import java.util.List;
 
 public class MatchingUI extends JFrame {
 
-    private JTable studentTable, listingTable;
-    private DefaultTableModel studentModel, listingModel;
+    private JTable studentTable, supervisorTable, listingTable;
+    private DefaultTableModel studentModel, supervisorModel, listingModel;
 
     public MatchingUI() {
         initComponents();
@@ -16,63 +16,87 @@ public class MatchingUI extends JFrame {
 
     private void initComponents() {
         setTitle("Internship Matching System");
-        setSize(1000, 600);
+        setSize(1200, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("Match Students to Internships", SwingConstants.CENTER);
+        JLabel title = new JLabel("Match Students, Supervisors, and Internships", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 22));
         title.setBorder(new EmptyBorder(15, 0, 15, 0));
         add(title, BorderLayout.NORTH);
 
-        JSplitPane splitPane = new JSplitPane();
-        splitPane.setDividerLocation(500);
-        add(splitPane, BorderLayout.CENTER);
+        JPanel centerPanel = new JPanel(new GridLayout(1, 3, 10, 0));
+        centerPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // --- LEFT: AVAILABLE STUDENTS ---
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setBorder(BorderFactory.createTitledBorder("Available Students (Not Placed)"));
-        
-        String[] studentCols = {"ID", "Name", "Intake"};
-        studentModel = new DefaultTableModel(studentCols, 0) {
+        leftPanel.setBorder(BorderFactory.createTitledBorder("Available Students"));
+        studentModel = new DefaultTableModel(new String[]{"ID", "Name", "Intake"}, 0) {
+            @Override
             public boolean isCellEditable(int row, int col) { return false; }
         };
         studentTable = new JTable(studentModel);
         leftPanel.add(new JScrollPane(studentTable), BorderLayout.CENTER);
-        splitPane.setLeftComponent(leftPanel);
 
-        // --- RIGHT: AVAILABLE LISTINGS ---
+        JPanel middlePanel = new JPanel(new BorderLayout());
+        middlePanel.setBorder(BorderFactory.createTitledBorder("Academic Supervisors"));
+        supervisorModel = new DefaultTableModel(new String[]{"ID", "Name", "Role"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int col) { return false; }
+        };
+        supervisorTable = new JTable(supervisorModel);
+        middlePanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
+
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.setBorder(BorderFactory.createTitledBorder("Active Internship Listings"));
-
-        String[] listingCols = {"RegNo", "Company", "Job"};
-        listingModel = new DefaultTableModel(listingCols, 0) {
+        rightPanel.setBorder(BorderFactory.createTitledBorder("Active Listings"));
+        listingModel = new DefaultTableModel(new String[]{"RegNo", "Company", "Job"}, 0) {
+            @Override
             public boolean isCellEditable(int row, int col) { return false; }
         };
         listingTable = new JTable(listingModel);
         rightPanel.add(new JScrollPane(listingTable), BorderLayout.CENTER);
-        splitPane.setRightComponent(rightPanel);
 
-        // --- BOTTOM: ACTION BUTTON ---
+        centerPanel.add(leftPanel);
+        centerPanel.add(middlePanel);
+        centerPanel.add(rightPanel);
+        add(centerPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        
+        JButton btnBack = new JButton("Back");
+        btnBack.setFont(new Font("Arial", Font.BOLD, 16));
+        btnBack.setPreferredSize(new Dimension(150, 40));
+        btnBack.addActionListener(e -> {
+            new AdminHome().setVisible(true);
+            dispose();
+        });
+        bottomPanel.add(btnBack);
+
         JButton btnMatch = new JButton("Confirm Match");
         btnMatch.setFont(new Font("Arial", Font.BOLD, 16));
+        btnMatch.setPreferredSize(new Dimension(200, 40));
         btnMatch.setBackground(new Color(144, 238, 144));
         btnMatch.addActionListener(e -> performMatch());
-        add(btnMatch, BorderLayout.SOUTH);
+        bottomPanel.add(btnMatch);
+
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
     private void loadData() {
         studentModel.setRowCount(0);
+        supervisorModel.setRowCount(0);
         listingModel.setRowCount(0);
 
-        // 1. Get Available Students using DBHelper
         List<String[]> students = DBHelper.getAvailableStudents();
         for (String[] s : students) {
             studentModel.addRow(s);
         }
 
-        // 2. Get Listings
+        List<String[]> supervisors = DBHelper.getUsersByRole("Academic Supervisor", "");
+        for (String[] sup : supervisors) {
+            supervisorModel.addRow(new Object[]{sup[0], sup[2], "Academic"});
+        }
+
         List<String[]> listings = DBHelper.getAllListings();
         for (String[] l : listings) {
             if (l.length >= 5 && l[4].equalsIgnoreCase("Approved")) {
@@ -86,13 +110,12 @@ public class MatchingUI extends JFrame {
         int listingRow = listingTable.getSelectedRow();
 
         if (studentRow == -1 || listingRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select ONE Student and ONE Listing.");
+            JOptionPane.showMessageDialog(this, "Please select at least a Student and a Listing.");
             return;
         }
 
         String studentId = studentModel.getValueAt(studentRow, 0).toString();
         String studentName = studentModel.getValueAt(studentRow, 1).toString();
-        
         String regNo = listingModel.getValueAt(listingRow, 0).toString();
         String companyName = listingModel.getValueAt(listingRow, 1).toString();
         String position = listingModel.getValueAt(listingRow, 2).toString();
