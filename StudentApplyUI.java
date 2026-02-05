@@ -2,12 +2,16 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 
 public class StudentApplyUI extends JFrame {
 
     private String studentId, regNo;
     private File selectedFile;
     private JLabel lblFileName;
+    private JLabel lblPreview; 
+    private JPanel filePanel;
     private JTextArea txtDesc;
     
     public StudentApplyUI(String stdId, String reg, String comp, String loc, String job, String desc) {
@@ -37,9 +41,13 @@ public class StudentApplyUI extends JFrame {
         lblFileName.setBounds(210, 30, 200, 30);
         mainPanel.add(lblFileName);
 
-        JPanel filePanel = new JPanel();
+        filePanel = new JPanel(new BorderLayout()); 
         filePanel.setBounds(50, 80, 350, 150);
         filePanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        filePanel.setBackground(Color.LIGHT_GRAY); 
+        
+        lblPreview = new JLabel("No Preview Available", SwingConstants.CENTER);
+        filePanel.add(lblPreview, BorderLayout.CENTER);
         mainPanel.add(filePanel);
 
         JButton btnUpload = new JButton("Upload");
@@ -105,9 +113,11 @@ public class StudentApplyUI extends JFrame {
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 File tempFile = chooser.getSelectedFile();
                 String name = tempFile.getName().toLowerCase();
+                
                 if (name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".pdf")) {
                     selectedFile = tempFile;
                     lblFileName.setText(selectedFile.getName());
+                    updatePreview(selectedFile);
                 } else {
                     JOptionPane.showMessageDialog(this, "Invalid file format. Please select JPG, PNG, or PDF.");
                 }
@@ -139,5 +149,29 @@ public class StudentApplyUI extends JFrame {
         });
 
         btnBack.addActionListener(e -> dispose());
+    }
+
+    private void updatePreview(File file) {
+        String name = file.getName().toLowerCase();
+        
+        if (name.endsWith(".pdf")) {
+            lblPreview.setIcon(null);
+            lblPreview.setText("<html><center>PDF Document Selected<br>" + file.getName() + "</center></html>");
+        } else {
+            try {
+                BufferedImage img = ImageIO.read(file);
+                if (img != null) {
+                    Image scaled = img.getScaledInstance(filePanel.getWidth(), filePanel.getHeight(), Image.SCALE_SMOOTH);
+                    lblPreview.setIcon(new ImageIcon(scaled));
+                    lblPreview.setText(""); 
+                } else {
+                    lblPreview.setIcon(null);
+                    lblPreview.setText("Preview Not Available");
+                }
+            } catch (Exception ex) {
+                lblPreview.setIcon(null);
+                lblPreview.setText("Error Loading Preview");
+            }
+        }
     }
 }

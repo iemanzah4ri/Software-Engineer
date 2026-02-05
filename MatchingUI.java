@@ -16,7 +16,7 @@ public class MatchingUI extends JFrame {
 
     private void initComponents() {
         setTitle("Internship Matching System");
-        setSize(1200, 600);
+        setSize(1300, 650); // Increased size slightly to fit new columns
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -29,6 +29,7 @@ public class MatchingUI extends JFrame {
         JPanel centerPanel = new JPanel(new GridLayout(1, 3, 10, 0));
         centerPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        // --- Left Panel: Students ---
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBorder(BorderFactory.createTitledBorder("Available Students"));
         studentModel = new DefaultTableModel(new String[]{"ID", "Name", "Intake"}, 0) {
@@ -38,6 +39,7 @@ public class MatchingUI extends JFrame {
         studentTable = new JTable(studentModel);
         leftPanel.add(new JScrollPane(studentTable), BorderLayout.CENTER);
 
+        // --- Middle Panel: Supervisors ---
         JPanel middlePanel = new JPanel(new BorderLayout());
         middlePanel.setBorder(BorderFactory.createTitledBorder("Academic Supervisors"));
         supervisorModel = new DefaultTableModel(new String[]{"ID", "Name", "Role"}, 0) {
@@ -47,9 +49,13 @@ public class MatchingUI extends JFrame {
         supervisorTable = new JTable(supervisorModel);
         middlePanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
 
+        // --- Right Panel: Listings (UPDATED) ---
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(BorderFactory.createTitledBorder("Active Internship Listings"));
-        listingModel = new DefaultTableModel(new String[]{"RegNo", "Company", "Job"}, 0) {
+        
+        // Updated Columns: Added Job Title & Job Desc, removed generic "Job"
+        String[] listingCols = {"RegNo", "Company", "Job Title", "Job Desc"};
+        listingModel = new DefaultTableModel(listingCols, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -61,6 +67,7 @@ public class MatchingUI extends JFrame {
         centerPanel.add(rightPanel);
         add(centerPanel, BorderLayout.CENTER);
 
+        // --- Bottom Panel ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         
         JButton btnBack = new JButton("Back");
@@ -87,20 +94,25 @@ public class MatchingUI extends JFrame {
         supervisorModel.setRowCount(0);
         listingModel.setRowCount(0);
 
+        // Load Students
         List<String[]> students = DBHelper.getAvailableStudents();
         for (String[] s : students) {
             studentModel.addRow(s);
         }
 
+        // Load Supervisors
         List<String[]> supervisors = DBHelper.getUsersByRole("Academic Supervisor", "");
         for (String[] sup : supervisors) {
             supervisorModel.addRow(new Object[]{sup[0], sup[2], "Academic"});
         }
 
+        // Load Listings (Updated for new columns)
         List<String[]> listings = DBHelper.getAllListings();
         for (String[] l : listings) {
-            if (l.length >= 5 && l[4].equalsIgnoreCase("Approved")) {
-                listingModel.addRow(new Object[]{l[0], l[1], l[3]});
+            // Check status is Approved and ensure we have enough data columns
+            // l indices: 0=RegNo, 1=Company, 2=Location, 3=JobName, 4=JobDesc, 5=Status
+            if (l.length >= 6 && l[5].equalsIgnoreCase("Approved")) {
+                listingModel.addRow(new Object[]{l[0], l[1], l[3], l[4]});
             }
         }
     }
@@ -115,21 +127,23 @@ public class MatchingUI extends JFrame {
             return;
         }
 
+        // Get Data from Tables
         String studentId = studentModel.getValueAt(studentRow, 0).toString();
         String studentName = studentModel.getValueAt(studentRow, 1).toString();
         String supervisorName = supervisorModel.getValueAt(supervisorRow, 1).toString();
+        
         String regNo = listingModel.getValueAt(listingRow, 0).toString();
         String companyName = listingModel.getValueAt(listingRow, 1).toString();
-        String position = listingModel.getValueAt(listingRow, 2).toString();
+        String position = listingModel.getValueAt(listingRow, 2).toString(); // Job Title is now at index 2
 
         int confirm = JOptionPane.showConfirmDialog(this, 
-            "Match " + studentName + " with " + companyName + "?\nSupervisor: " + supervisorName, 
+            "Match " + studentName + " with " + companyName + " (" + position + ")?\nSupervisor: " + supervisorName, 
             "Confirm Match", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             DBHelper.saveMatch(studentId, studentName, regNo, companyName, position);
             JOptionPane.showMessageDialog(this, "Match Successful! Student marked as 'Placed'.");
-            loadData();
+            loadData(); // Refresh tables to remove placed student
         }
     }
 }

@@ -4,7 +4,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class AcademicEvaluation extends javax.swing.JFrame {
-    private final String supervisorType; // "Company" or "Academic"
+    private final String supervisorType; 
     private final String supervisorName;
 
     private JTable tblStudents;
@@ -21,18 +21,17 @@ public class AcademicEvaluation extends javax.swing.JFrame {
         loadStudents();
     }
 
-    // No-arg for testing
     public AcademicEvaluation() {
-        this("Company", "Test Supervisor");
+        this("Academic", "Unknown Supervisor");
     }
 
     private void initComponents() {
-        setTitle("Submit Performance Evaluation");
+        setTitle("Submit Academic Performance Evaluation");
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setSize(800, 500);
+        setSize(900, 500);
         setLocationRelativeTo(null);
 
-        String[] cols = {"ID", "Name", "Intake", "Job Description"};
+        String[] cols = {"ID", "Name", "Intake", "Job Position"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -45,18 +44,21 @@ public class AcademicEvaluation extends javax.swing.JFrame {
 
         txtScore = new JTextField(10);
 
-        btnSubmit = new JButton("Submit");
-        btnBack = new JButton("Back Home");
+        btnSubmit = new JButton("Submit Evaluation");
+        btnBack = new JButton("Back");
 
         JPanel right = new JPanel();
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        right.add(new JLabel("Feedback"));
+        
+        right.add(new JLabel("Feedback:"));
         right.add(new JScrollPane(txtFeedback));
         right.add(Box.createVerticalStrut(10));
-        right.add(new JLabel("Score"));
+        
+        right.add(new JLabel("Score (0-100):"));
         right.add(txtScore);
         right.add(Box.createVerticalStrut(10));
+        
         right.add(btnSubmit);
         right.add(Box.createVerticalStrut(10));
         right.add(btnBack);
@@ -65,7 +67,6 @@ public class AcademicEvaluation extends javax.swing.JFrame {
         getContentPane().add(scroll, BorderLayout.CENTER);
         getContentPane().add(right, BorderLayout.EAST);
 
-        // Submit button logic
         btnSubmit.addActionListener(e -> {
             int row = tblStudents.getSelectedRow();
             if (row < 0) {
@@ -86,55 +87,44 @@ public class AcademicEvaluation extends javax.swing.JFrame {
             int score;
             try {
                 score = Integer.parseInt(scoreStr);
+                if(score < 0 || score > 100) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Score must be a number.");
+                JOptionPane.showMessageDialog(this, "Score must be a number between 0 and 100.");
                 return;
             }
 
-            if (supervisorType.equalsIgnoreCase("Company")) {
-                DBHelper.saveCompanyFeedback(studentId, studentName, supervisorName, String.valueOf(score), feedback);
-            } else {
-                DBHelper.saveAcademicFeedback(studentId, studentName, String.valueOf(score), feedback);
-            }
+            DBHelper.saveAcademicFeedback(studentId, studentName, String.valueOf(score), feedback);
 
             JOptionPane.showMessageDialog(this, "Feedback submitted successfully.");
             txtFeedback.setText("");
             txtScore.setText("");
         });
 
-        // Back button logic
-        btnBack.addActionListener(e -> {
-            this.setVisible(false);
-            if (supervisorType.equalsIgnoreCase("Company")) {
-                new CompanySupervisorHome(supervisorName).setVisible(true);
-            } else {
-                new AcademicSupervisorHome().setVisible(true);
-            }
-            dispose();
-        });
+        btnBack.addActionListener(e -> dispose());
     }
 
     private void loadStudents() {
-        // Example: load from txt file
-        File f = new File("matches.txt");
+        tableModel.setRowCount(0);
+        File f = new File("database/matches.txt");
         if (!f.exists()) return;
+        
         try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] p = line.split(",", -1);
+                String[] p = line.split(",");
                 if (p.length < 6) continue;
-                String id = p[0].trim();
-                String name = p[2].trim();
-                String intake = p[5].trim();
-                String jobDesc = p[3].trim();
-                tableModel.addRow(new Object[]{id, name, intake, jobDesc});
+                
+                String id = p[1].trim(); 
+                String name = p[2].trim(); 
+                String position = p[5].trim(); 
+                
+                String[] userDetails = DBHelper.getUserById(id);
+                String intake = (userDetails != null && userDetails.length > 4) ? userDetails[4] : "Unknown";
+
+                tableModel.addRow(new Object[]{id, name, intake, position});
             }
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new AcademicEvaluation("Company", "ABC Corp").setVisible(true));
     }
 }

@@ -68,6 +68,10 @@ public class CompanySupervisorHome extends JFrame {
             new CompanyManageApplicationsUI(companyName).setVisible(true);
         });
 
+        btnSubmitEval.addActionListener(evt -> {
+            new AcademicEvaluation().setVisible(true);
+        });
+
         btnViewAssigned.addActionListener(evt -> {
             new ViewAssignedStudentsUI(supervisorId).setVisible(true);
         });

@@ -4,36 +4,52 @@ import java.awt.*;
 public class StudentHome extends JFrame {
 
     private String studentId;
-    private String studentName; // Added field to store name
+    private String studentName;
+    private boolean profileComplete = true;
 
-    // Updated Constructor to accept both ID and Name
     public StudentHome(String id, String name) {
         this.studentId = id;
         this.studentName = name;
-        initComponents();
-        setSize(800, 600);
-        setLocationRelativeTo(null);
-        checkProfileStatus();
+        this.profileComplete = checkProfileStatus();
+        
+        if (profileComplete) {
+            initComponents();
+            setSize(800, 600);
+            setLocationRelativeTo(null);
+        }
     }
     
-    // Fallback constructor (just in case)
     public StudentHome(String id) {
         this(id, "Student");
     }
     
-    private void checkProfileStatus() {
+    private boolean checkProfileStatus() {
         String[] data = DBHelper.getUserById(studentId);
         if (data != null) {
-            // Check specific profile fields (Email, Contact, Address)
-            if (data[6].equals("N/A") || data[7].equals("N/A") || data[8].equals("N/A")) {
-                JOptionPane.showMessageDialog(this, 
+            boolean emailMissing = data[6].trim().isEmpty() || data[6].equalsIgnoreCase("N/A");
+            boolean contactMissing = data[7].trim().isEmpty() || data[7].equalsIgnoreCase("N/A");
+            boolean addressMissing = data[8].trim().isEmpty() || data[8].equalsIgnoreCase("N/A");
+
+            if (emailMissing || contactMissing || addressMissing) {
+                JOptionPane.showMessageDialog(null, 
                     "Welcome! You must complete your profile details to proceed.", 
                     "Profile Incomplete", 
                     JOptionPane.WARNING_MESSAGE);
-                // Ensure StudentProfile accepts just ID (based on your previous code)
-                new StudentProfile(studentId).setVisible(true);
+                
+                new StudentProfile(studentId, studentName, true).setVisible(true);
+                return false;
             }
         }
+        return true;
+    }
+
+    @Override
+    public void setVisible(boolean b) {
+        if (b && !profileComplete) {
+            super.setVisible(false);
+            return;
+        }
+        super.setVisible(b);
     }
 
     private void initComponents() {
@@ -41,25 +57,22 @@ public class StudentHome extends JFrame {
         setTitle("Student Dashboard - " + studentName);
         setLayout(new BorderLayout());
 
-        // Header
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
         JLabel lblWelcome = new JLabel("Welcome " + studentName);
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);
         add(header, BorderLayout.NORTH);
 
-        // Buttons Grid
-        JPanel buttons = new JPanel(new GridLayout(4, 2, 10, 10)); // Adjusted rows
+        JPanel buttons = new JPanel(new GridLayout(4, 2, 10, 10)); 
         buttons.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
 
         JButton btnUpdateProfile = new JButton("Update Profile");
-        btnUpdateProfile.addActionListener(e -> new StudentProfile(studentId).setVisible(true));
+        btnUpdateProfile.addActionListener(e -> new StudentProfile(studentId, studentName, false).setVisible(true));
 
         JButton btnViewListings = new JButton("View Internship Listings");
         btnViewListings.addActionListener(e -> new ViewInternship(studentId, studentName).setVisible(true));
 
         JButton btnSubmitLog = new JButton("Submit Daily Logbook");
-        // FIXED LINE: Passing both ID and Name
         btnSubmitLog.addActionListener(e -> new StudentLogbook(studentId, studentName).setVisible(true));
 
         JButton btnAttendance = new JButton("Submit Attendance Record");
@@ -81,7 +94,6 @@ public class StudentHome extends JFrame {
             new LoginForm().setVisible(true);
         });
         
-        // Add buttons to panel
         buttons.add(btnUpdateProfile);
         buttons.add(btnViewListings);
         buttons.add(btnSubmitLog);

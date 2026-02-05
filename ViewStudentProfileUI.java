@@ -4,6 +4,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.util.List;
 
 public class ViewStudentProfileUI extends JFrame {
@@ -133,6 +136,25 @@ public class ViewStudentProfileUI extends JFrame {
             txtEmail.setText(user[6]); 
             txtContact.setText(user[7]);
             txtAddress.setText(user[8]); 
+
+            // Load Profile Picture
+            File pfp = DBHelper.getProfileImage(id);
+            if (pfp != null && pfp.exists()) {
+                try {
+                    BufferedImage img = ImageIO.read(pfp);
+                    if (img != null) {
+                        Image scaled = img.getScaledInstance(lblImage.getWidth(), lblImage.getHeight(), Image.SCALE_SMOOTH);
+                        lblImage.setIcon(new ImageIcon(scaled));
+                        lblImage.setText("");
+                    }
+                } catch (Exception e) {
+                    lblImage.setIcon(null);
+                    lblImage.setText("Error Loading");
+                }
+            } else {
+                lblImage.setIcon(null);
+                lblImage.setText("No Image");
+            }
         }
     }
 }

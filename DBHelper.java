@@ -8,7 +8,9 @@ import java.util.Set;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
-    private static final String RESUME_FOLDER = "resume";
+    private static final String RESUME_FOLDER = DB_FOLDER + File.separator + "resume";
+    private static final String PFP_FOLDER = DB_FOLDER + File.separator + "pfp";
+    
     private static final String FILE_NAME = DB_FOLDER + File.separator + "users.txt";
     private static final String LISTING_FILE = DB_FOLDER + File.separator + "listings.txt";
     private static final String APP_FILE = DB_FOLDER + File.separator + "applications.txt";
@@ -23,30 +25,60 @@ public class DBHelper {
         
         File resFolder = new File(RESUME_FOLDER);
         if (!resFolder.exists()) resFolder.mkdir();
+
+        File pfpFolder = new File(PFP_FOLDER);
+        if (!pfpFolder.exists()) pfpFolder.mkdir();
+    }
+
+    private static long generateNextId(String filePath, int idIndex) {
+        long maxId = 0;
+        File file = new File(filePath);
+        if (file.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] data = line.split(",");
+                    if (data.length > idIndex) {
+                        try {
+                            long currentId = Long.parseLong(data[idIndex]);
+                            if (currentId > maxId) {
+                                maxId = currentId;
+                            }
+                        } catch (NumberFormatException e) {
+                        }
+                    }
+                }
+            } catch (IOException e) { e.printStackTrace(); }
+        }
+        return maxId + 1;
     }
 
     public static void saveUser(String username, String password, String fullname, String intake, String role) {
-        saveUserFull(username, password, fullname, intake, role, "N/A", "N/A", "N/A", "Not Placed");
+        long id = generateNextId(FILE_NAME, 0);
+        saveUserFull(id, username, password, fullname, intake, role, "", "", "", "Not Placed");
     }
 
     public static void saveCompanySupervisor(String username, String password, String fullname, String position, String company, String email) {
-        saveUserFull(username, password, fullname, position, "Company Supervisor", email, "N/A", company, "N/A");
+        long id = generateNextId(FILE_NAME, 0);
+        saveUserFull(id, username, password, fullname, position, "Company Supervisor", email, "", company, "N/A");
     }
 
-    private static void saveUserFull(String username, String password, String fullname, String col4, String role, 
+    private static void saveUserFull(long id, String username, String password, String fullname, String col4, String role, 
                                      String col6, String col7, String col8, String col9) {
         try (FileWriter fw = new FileWriter(FILE_NAME, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            long id = System.currentTimeMillis() % 100000;
+            
             String safeUser = username.replace(",", "");
             String safePass = password.replace(",", "");
             String safeName = fullname.replace(",", "");
             
-            out.println(id + "," + safeUser + "," + safePass + "," + safeName + "," + 
-                       (col4==null?"N/A":col4) + "," + role + "," + 
-                       (col6==null?"N/A":col6) + "," + (col7==null?"N/A":col7) + "," + 
-                       (col8==null?"N/A":col8) + "," + (col9==null?"N/A":col9));
+            String formattedId = String.format("%07d", id);
+
+            out.println(formattedId + "," + safeUser + "," + safePass + "," + safeName + "," + 
+                       (col4==null?"":col4) + "," + role + "," + 
+                       (col6==null?"":col6) + "," + (col7==null?"":col7) + "," + 
+                       (col8==null?"":col8) + "," + (col9==null?"":col9));
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -62,7 +94,7 @@ public class DBHelper {
                 if (data.length >= 6) { 
                     if (data[5].equalsIgnoreCase(role)) {
                         if (query.isEmpty() || data[3].toLowerCase().contains(query.toLowerCase()) || data[0].equals(query)) {
-                            results.add(new String[]{data[0], data[1], data[3], (data.length > 8 ? data[8] : "N/A")});
+                            results.add(new String[]{data[0], data[1], data[3], (data.length > 8 ? data[8] : "")});
                         }
                     }
                 }
@@ -81,7 +113,7 @@ public class DBHelper {
                 String[] data = line.split(",");
                 if (data.length > 0 && data[0].equals(id)) {
                     String[] fullData = new String[10];
-                    for(int i=0; i<10; i++) fullData[i] = (i < data.length) ? data[i] : "N/A";
+                    for(int i=0; i<10; i++) fullData[i] = (i < data.length) ? data[i] : "";
                     return fullData;
                 }
             }
@@ -108,17 +140,17 @@ public class DBHelper {
 
     public static void updateStudent(String id, String user, String pass, String name, String matric) {
         String[] current = getUserById(id);
-        String email="N/A", contact="N/A", addr="N/A", place="Not Placed";
+        String email="", contact="", addr="", place="Not Placed";
         if(current != null) { email=current[6]; contact=current[7]; addr=current[8]; place=current[9]; }
         updateUser(id, user, pass, name, matric, "Student", email, contact, addr, place);
     }
 
     public static void updateCompanySupervisor(String id, String user, String pass, String name, String pos, String comp, String email) {
-        updateUser(id, user, pass, name, pos, "Company Supervisor", email, "N/A", comp, "N/A");
+        updateUser(id, user, pass, name, pos, "Company Supervisor", email, "", comp, "N/A");
     }
     
     public static void updateAcademicSupervisor(String id, String user, String pass, String name) {
-        updateUser(id, user, pass, name, "N/A", "Academic Supervisor", "N/A", "N/A", "N/A", "N/A");
+        updateUser(id, user, pass, name, "", "Academic Supervisor", "", "", "", "");
     }
 
     public static void updateUser(String id, String username, String password, String fullname, String intake, String role, String email, String contact, String address, String placement) {
@@ -213,11 +245,12 @@ public class DBHelper {
     }
 
     public static void applyForInternship(String studentId, String regNumber, String companyName) {
+        long appId = generateNextId(APP_FILE, 0);
         try (FileWriter fw = new FileWriter(APP_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            long appId = System.currentTimeMillis() % 100000;
-            out.println(appId + "," + studentId + "," + regNumber + "," + companyName + ",Pending");
+            String formattedId = String.format("%07d", appId);
+            out.println(formattedId + "," + studentId + "," + regNumber + "," + companyName + ",Pending");
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -294,9 +327,7 @@ public class DBHelper {
         if (i > 0) {
             ext = sourceFile.getName().substring(i);
         }
-        
         File destFile = new File(RESUME_FOLDER + File.separator + studentId + ext);
-        
         try {
             Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return true;
@@ -310,17 +341,45 @@ public class DBHelper {
         File folder = new File(RESUME_FOLDER);
         File[] files = folder.listFiles((dir, name) -> name.startsWith(studentId + "."));
         if (files != null && files.length > 0) {
+            for(File f : files) {
+                if(!f.getName().contains("_profile")) return f;
+            }
+        }
+        return null;
+    }
+
+    public static boolean saveProfileImage(File sourceFile, String studentId) {
+        String ext = "";
+        int i = sourceFile.getName().lastIndexOf('.');
+        if (i > 0) {
+            ext = sourceFile.getName().substring(i);
+        }
+        File destFile = new File(PFP_FOLDER + File.separator + studentId + "_profile" + ext);
+        try {
+            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static File getProfileImage(String studentId) {
+        File folder = new File(PFP_FOLDER);
+        File[] files = folder.listFiles((dir, name) -> name.startsWith(studentId + "_profile."));
+        if (files != null && files.length > 0) {
             return files[0];
         }
         return null;
     }
 
     public static void saveMatch(String studentId, String studentName, String regNo, String companyName, String position) {
+        long matchId = generateNextId(MATCH_FILE, 0);
         try (FileWriter fw = new FileWriter(MATCH_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            long matchId = System.currentTimeMillis() % 100000;
-            out.println(matchId + "," + studentId + "," + studentName + "," + regNo + "," + companyName + "," + position + "," + LocalDate.now());
+            String formattedId = String.format("%07d", matchId);
+            out.println(formattedId + "," + studentId + "," + studentName + "," + regNo + "," + companyName + "," + position + "," + LocalDate.now());
         } catch (IOException e) { e.printStackTrace(); }
         updateStudentPlacement(studentId, "Placed");
     }
@@ -347,11 +406,12 @@ public class DBHelper {
     }
 
     public static void saveLogbookEntry(String studentId, String date, String activity, String hours) {
+        long logId = generateNextId(LOG_FILE, 0);
         try (FileWriter fw = new FileWriter(LOG_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            long logId = System.currentTimeMillis() % 100000;
-            out.println(logId + "," + studentId + "," + date + "," + activity.replace(",", " ") + "," + hours + ",Pending");
+            String formattedId = String.format("%07d", logId);
+            out.println(formattedId + "," + studentId + "," + date + "," + activity.replace(",", " ") + "," + hours + ",Pending");
         } catch (IOException e) { e.printStackTrace(); }
     }
     
@@ -446,8 +506,9 @@ public class DBHelper {
             } catch(IOException e){ e.printStackTrace(); }
         }
         if(!updated && timeIn != null){
-            long id = System.currentTimeMillis() % 100000;
-            lines.add(id + "," + studentId + "," + studentName + "," + date + "," + timeIn + ",Pending,Pending");
+            long id = generateNextId(ATTENDANCE_FILE, 0);
+            String formattedId = String.format("%07d", id);
+            lines.add(formattedId + "," + studentId + "," + studentName + "," + date + "," + timeIn + ",Pending,Pending");
         }
         try(PrintWriter out = new PrintWriter(new FileWriter(file))){
             for(String l : lines) out.println(l);
@@ -481,77 +542,74 @@ public class DBHelper {
         return null;
     }
 
-
     public static void saveCompanyFeedback(String studentId, String studentName,
                                        String companyName, String score, String feedback) {
-    File file = new File(FEEDBACK_FILE);
-    List<String> lines = new ArrayList<>();
-    boolean updated = false;
+        File file = new File(FEEDBACK_FILE);
+        List<String> lines = new ArrayList<>();
+        boolean updated = false;
 
-    if (file.exists()) {
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 9 && data[1].equals(studentId)) {
-                    // update company feedback
-                    data[3] = companyName;
-                    data[5] = score;
-                    data[7] = feedback.replace(",", " ");
-                    lines.add(String.join(",", data));
-                    updated = true;
-                } else {
-                    lines.add(line);
+        if (file.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] data = line.split(",");
+                    if (data.length >= 9 && data[1].equals(studentId)) {
+                        data[3] = companyName;
+                        data[5] = score;
+                        data[7] = feedback.replace(",", " ");
+                        lines.add(String.join(",", data));
+                        updated = true;
+                    } else {
+                        lines.add(line);
+                    }
                 }
-            }
+            } catch (IOException e) { e.printStackTrace(); }
+        }
+
+        if (!updated) {
+            long id = generateNextId(FEEDBACK_FILE, 0);
+            String formattedId = String.format("%07d", id);
+            lines.add(formattedId + "," + studentId + "," + studentName + "," + companyName + ",Completed," +
+                      score + ",N/A," + feedback.replace(",", " ") + ",N/A");
+        }
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+            for (String l : lines) out.println(l);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    if (!updated) {
-        long id = System.currentTimeMillis() % 100000;
-        lines.add(id + "," + studentId + "," + studentName + "," + companyName + ",Completed," +
-                  score + ",N/A," + feedback.replace(",", " ") + ",N/A");
-    }
+    public static void saveAcademicFeedback(String studentId, String studentName,
+                                            String score, String feedback) {
+        File file = new File(FEEDBACK_FILE);
+        List<String> lines = new ArrayList<>();
+        boolean updated = false;
 
-    try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-        for (String l : lines) out.println(l);
-    } catch (IOException e) { e.printStackTrace(); }
-}
-
-public static void saveAcademicFeedback(String studentId, String studentName,
-                                        String score, String feedback) {
-    File file = new File(FEEDBACK_FILE);
-    List<String> lines = new ArrayList<>();
-    boolean updated = false;
-
-    if (file.exists()) {
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 9 && data[1].equals(studentId)) {
-                    // update academic feedback
-                    data[6] = score;
-                    data[8] = feedback.replace(",", " ");
-                    lines.add(String.join(",", data));
-                    updated = true;
-                } else {
-                    lines.add(line);
+        if (file.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] data = line.split(",");
+                    if (data.length >= 9 && data[1].equals(studentId)) {
+                        data[6] = score;
+                        data[8] = feedback.replace(",", " ");
+                        lines.add(String.join(",", data));
+                        updated = true;
+                    } else {
+                        lines.add(line);
+                    }
                 }
-            }
+            } catch (IOException e) { e.printStackTrace(); }
+        }
+
+        if (!updated) {
+            long id = generateNextId(FEEDBACK_FILE, 0);
+            String formattedId = String.format("%07d", id);
+            lines.add(formattedId + "," + studentId + "," + studentName + ",N/A,Completed,N/A," +
+                      score + ",N/A," + feedback.replace(",", " "));
+        }
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+            for (String l : lines) out.println(l);
         } catch (IOException e) { e.printStackTrace(); }
     }
-
-    if (!updated) {
-        long id = System.currentTimeMillis() % 100000;
-        lines.add(id + "," + studentId + "," + studentName + ",N/A,Completed,N/A," +
-                  score + ",N/A," + feedback.replace(",", " "));
-    }
-
-    try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
-        for (String l : lines) out.println(l);
-    } catch (IOException e) { e.printStackTrace(); }
 }
-
-}
-

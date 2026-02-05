@@ -37,6 +37,7 @@ public class AcademicSupervisorHome extends JFrame {
         
         b1.addActionListener(e -> JOptionPane.showMessageDialog(this, "Feature in development"));
         b2.addActionListener(e -> new AcademicViewLogbooksUI().setVisible(true));
+        b3.addActionListener(e -> new AcademicEvaluation().setVisible(true));
 
         buttons.add(b1); buttons.add(b2); buttons.add(b3); 
         buttons.add(b4); buttons.add(b5); buttons.add(bOut);
