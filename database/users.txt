@@ -1,1 +1,3 @@
 89542,iemanjang,123,iemanzaharijang,12,Student,N/A,N/A,N/A,Not Placed
+36071,danial,123,danial haykal,ceo,Company Supervisor,danial@gmail.com,N/A,hornbills enterprise,N/A
+53423,amir,123,amir asyraf,N/A,Academic Supervisor,N/A,N/A,N/A,Not Placed
