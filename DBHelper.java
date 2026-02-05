@@ -1,10 +1,14 @@
 import java.io.*;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.time.LocalDate;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
+    private static final String RESUME_FOLDER = "resume";
     private static final String FILE_NAME = DB_FOLDER + File.separator + "users.txt";
     private static final String LISTING_FILE = DB_FOLDER + File.separator + "listings.txt";
     private static final String APP_FILE = DB_FOLDER + File.separator + "applications.txt";
@@ -15,9 +19,10 @@ public class DBHelper {
 
     static {
         File folder = new File(DB_FOLDER);
-        if (!folder.exists()) {
-            folder.mkdir();
-        }
+        if (!folder.exists()) folder.mkdir();
+        
+        File resFolder = new File(RESUME_FOLDER);
+        if (!resFolder.exists()) resFolder.mkdir();
     }
 
     public static void saveUser(String username, String password, String fullname, String intake, String role) {
@@ -142,11 +147,13 @@ public class DBHelper {
         if(s!=null) updateUser(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], newStatus);
     }
 
-    public static void saveListing(String regNumber, String company, String location, String job, String status) {
+    public static void saveListing(String regNumber, String company, String location, String jobName, String jobDesc, String status) {
         try (FileWriter fw = new FileWriter(LISTING_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
-            out.println(regNumber + "," + company + "," + location + "," + job + "," + status);
+            String safeDesc = jobDesc.replace("\n", " ").replace(",", ";"); 
+            String safeName = jobName.replace(",", " ");
+            out.println(regNumber + "," + company + "," + location + "," + safeName + "," + safeDesc + "," + status);
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -154,11 +161,29 @@ public class DBHelper {
         List<String[]> list = new ArrayList<>();
         File file = new File(LISTING_FILE);
         if (!file.exists()) return list;
+
+        Set<String> filledRegNos = new HashSet<>();
+        File matchFile = new File(MATCH_FILE);
+        if (matchFile.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(matchFile))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] data = line.split(",");
+                    if (data.length >= 4) filledRegNos.add(data[3]); 
+                }
+            } catch (IOException e) { e.printStackTrace(); }
+        }
+
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
-                if (data.length >= 5) list.add(data);
+                if (data.length >= 6) {
+                    if (filledRegNos.contains(data[0])) {
+                        data[5] = "Filled"; 
+                    }
+                    list.add(data);
+                }
             }
         } catch (IOException e) { e.printStackTrace(); }
         return list;
@@ -174,11 +199,12 @@ public class DBHelper {
             String line;
             while ((line = br.readLine()) != null) lines.add(line);
         } catch (IOException e) { return; }
+        
         try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
             for (String line : lines) {
                 String[] data = line.split(",");
-                if (data.length >= 5 && data[0].equals(regNumber)) {
-                    out.println(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + newStatus);
+                if (data.length >= 6 && data[0].equals(regNumber)) {
+                    out.println(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + data[4] + "," + newStatus);
                 } else {
                     out.println(line);
                 }
@@ -225,7 +251,7 @@ public class DBHelper {
             String position = "Intern";
             for (String[] l : listings) {
                 if (l[0].equals(regNo)) {
-                    position = l[3];
+                    position = l[3]; 
                     break;
                 }
             }
@@ -262,6 +288,64 @@ public class DBHelper {
         return list;
     }
 
+    public static boolean saveResume(File sourceFile, String studentId) {
+        String ext = "";
+        int i = sourceFile.getName().lastIndexOf('.');
+        if (i > 0) {
+            ext = sourceFile.getName().substring(i);
+        }
+        
+        File destFile = new File(RESUME_FOLDER + File.separator + studentId + ext);
+        
+        try {
+            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static File getResumeFile(String studentId) {
+        File folder = new File(RESUME_FOLDER);
+        File[] files = folder.listFiles((dir, name) -> name.startsWith(studentId + "."));
+        if (files != null && files.length > 0) {
+            return files[0];
+        }
+        return null;
+    }
+
+    public static void saveMatch(String studentId, String studentName, String regNo, String companyName, String position) {
+        try (FileWriter fw = new FileWriter(MATCH_FILE, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            long matchId = System.currentTimeMillis() % 100000;
+            out.println(matchId + "," + studentId + "," + studentName + "," + regNo + "," + companyName + "," + position + "," + LocalDate.now());
+        } catch (IOException e) { e.printStackTrace(); }
+        updateStudentPlacement(studentId, "Placed");
+    }
+
+    public static List<String[]> getMatchesForSupervisor(String supervisorId) {
+        List<String[]> list = new ArrayList<>();
+        String[] supervisor = getUserById(supervisorId);
+        if (supervisor == null || supervisor.length <= 8) return list;
+        
+        String myCompany = supervisor[8];
+        File file = new File(MATCH_FILE);
+        if (!file.exists()) return list;
+        
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+                if (data.length >= 6 && data[4].equalsIgnoreCase(myCompany)) {
+                    list.add(data);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+        return list;
+    }
+
     public static void saveLogbookEntry(String studentId, String date, String activity, String hours) {
         try (FileWriter fw = new FileWriter(LOG_FILE, true);
              BufferedWriter bw = new BufferedWriter(fw);
@@ -270,7 +354,7 @@ public class DBHelper {
             out.println(logId + "," + studentId + "," + date + "," + activity.replace(",", " ") + "," + hours + ",Pending");
         } catch (IOException e) { e.printStackTrace(); }
     }
-
+    
     public static List<String[]> getAllLogbooks() {
         List<String[]> list = new ArrayList<>();
         File file = new File(LOG_FILE);
@@ -293,7 +377,11 @@ public class DBHelper {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
-                if (data.length >= 6 && data[1].equals(studentId)) list.add(data);
+                if (data.length >= 6) {
+                    if (studentId == null || data[1].equals(studentId)) {
+                        list.add(data);
+                    }
+                }
             }
         } catch (IOException e) { e.printStackTrace(); }
         return list;
@@ -378,16 +466,6 @@ public class DBHelper {
             }
         } catch (IOException e) { e.printStackTrace(); }
         return list;
-    }
-
-    public static void saveMatch(String studentId, String studentName, String regNo, String companyName, String position) {
-        try (FileWriter fw = new FileWriter(MATCH_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            long matchId = System.currentTimeMillis() % 100000;
-            out.println(matchId + "," + studentId + "," + studentName + "," + regNo + "," + companyName + "," + position + "," + LocalDate.now());
-        } catch (IOException e) { e.printStackTrace(); }
-        updateStudentPlacement(studentId, "Placed");
     }
 
     public static String[] getStudentFeedback(String studentId) {

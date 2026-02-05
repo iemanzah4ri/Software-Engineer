@@ -15,7 +15,6 @@ public class AcademicSupervisorHome extends JFrame {
         setLayout(new BorderLayout());
 
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
-        header.setBackground(new Color(153, 255, 255));
         JLabel lblWelcome = new JLabel("Welcome Academic Supervisor");
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);

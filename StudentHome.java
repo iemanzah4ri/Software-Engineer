@@ -43,7 +43,6 @@ public class StudentHome extends JFrame {
 
         // Header
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
-        header.setBackground(new Color(153, 255, 255));
         JLabel lblWelcome = new JLabel("Welcome " + studentName);
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);

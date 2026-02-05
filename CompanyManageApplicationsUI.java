@@ -3,6 +3,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +22,7 @@ public class CompanyManageApplicationsUI extends JFrame {
 
     private void initComponents() {
         setTitle("Manage Student Applications - " + (companyName.isEmpty() ? "All Companies" : companyName));
-        setSize(900, 500);
+        setSize(950, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -38,19 +40,34 @@ public class CompanyManageApplicationsUI extends JFrame {
         appTable = new JTable(appModel);
         add(new JScrollPane(appTable), BorderLayout.CENTER);
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        JButton btnBack = new JButton("Back");
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        
+        JButton btnView = new JButton("View Resume");
+        JButton btnDownload = new JButton("Download Resume");
         JButton btnReject = new JButton("Reject");
         JButton btnAccept = new JButton("Accept Student");
+        JButton btnBack = new JButton("Back");
+
+        btnView.setPreferredSize(new Dimension(130, 40));
+        btnDownload.setPreferredSize(new Dimension(150, 40));
+        btnBack.setPreferredSize(new Dimension(80, 40));
+        btnReject.setPreferredSize(new Dimension(100, 40));
+        btnAccept.setPreferredSize(new Dimension(130, 40));
 
         btnBack.addActionListener(e -> dispose());
         btnReject.setBackground(new Color(255, 102, 102));
         btnAccept.setBackground(new Color(144, 238, 144));
+        btnView.setBackground(new Color(173, 216, 230));
+        btnDownload.setBackground(new Color(135, 206, 250));
 
+        btnView.addActionListener(e -> viewResume());
+        btnDownload.addActionListener(e -> downloadResume());
         btnAccept.addActionListener(e -> handleAction(true));
         btnReject.addActionListener(e -> handleAction(false));
 
         bottomPanel.add(btnBack);
+        bottomPanel.add(btnView);
+        bottomPanel.add(btnDownload);
         bottomPanel.add(btnReject);
         bottomPanel.add(btnAccept);
         add(bottomPanel, BorderLayout.SOUTH);
@@ -106,12 +123,66 @@ public class CompanyManageApplicationsUI extends JFrame {
                 String[] data = line.split(",");
                 if (data[0].equals(appId)) {
                     lines.add(data[0] + "," + data[1] + "," + data[2] + "," + data[3] + "," + status);
-                } else { lines.add(line); }
+                } else { 
+                    lines.add(line); 
+                }
             }
         } catch (IOException e) { e.printStackTrace(); }
 
         try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
             for (String l : lines) out.println(l);
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    private void viewResume() {
+        int row = appTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Please select an application first.");
+            return;
+        }
+
+        String studentId = appModel.getValueAt(row, 1).toString();
+        File resumeFile = DBHelper.getResumeFile(studentId);
+
+        if (resumeFile == null || !resumeFile.exists()) {
+            JOptionPane.showMessageDialog(this, "No resume found for this student.");
+            return;
+        }
+
+        try {
+            Desktop.getDesktop().open(resumeFile);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Could not open resume: " + e.getMessage());
+        }
+    }
+
+    private void downloadResume() {
+        int row = appTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Please select an application first.");
+            return;
+        }
+
+        String studentId = appModel.getValueAt(row, 1).toString();
+        File resumeFile = DBHelper.getResumeFile(studentId);
+
+        if (resumeFile == null) {
+            JOptionPane.showMessageDialog(this, "No resume found for this student.");
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(new File(resumeFile.getName()));
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File destFile = fileChooser.getSelectedFile();
+            try {
+                Files.copy(resumeFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                JOptionPane.showMessageDialog(this, "Resume downloaded successfully!");
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage());
+            }
+        }
     }
 }
