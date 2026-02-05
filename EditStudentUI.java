@@ -22,6 +22,13 @@ public class EditStudentUI extends JFrame {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
 
+
+          // --- Footer ---
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton backBtn = new JButton("Back Home");
+        backBtn.addActionListener(e -> dispose());
+        footerPanel.add(backBtn);
+        add(footerPanel, BorderLayout.SOUTH);
         JSplitPane splitPane = new JSplitPane();
 
         // Search & List

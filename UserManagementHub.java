@@ -26,12 +26,12 @@ public class UserManagementHub extends JFrame {
         JButton b6 = new JButton("Edit Academic Supervisor");
         JButton bBack = new JButton("Back Home");
 
-        b1.addActionListener(e -> new AddStudentUI());           
-        b2.addActionListener(e -> new EditStudentUI());          
-        b3.addActionListener(e -> new AddCompanySupervisorUI().setVisible(true)); 
+        b1.addActionListener(e -> new AddStudentUI());
+        b2.addActionListener(e -> new EditStudentUI().setVisible(true));
+        b3.addActionListener(e -> new AddCompanySupervisorUI().setVisible(true));
         b4.addActionListener(e -> new EditCompanySupervisorUI().setVisible(true));
         b5.addActionListener(e -> new AddAcademicSupervisorUI());
-        b6.addActionListener(e -> new EditAcademicSupervisorUI());
+        b6.addActionListener(e -> new EditAcademicSupervisorUI().setVisible(true));
 
         bBack.addActionListener(e -> {
             this.dispose();
