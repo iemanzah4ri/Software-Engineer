@@ -1,0 +1,164 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
+
+public class EditCompanySupervisorUI extends JFrame {
+    private JTextField searchField, userField, passField, nameField, companyField, positionField, emailField;
+    private JTable supervisorTable;
+    private DefaultTableModel tableModel;
+    private String currentId;
+
+    public EditCompanySupervisorUI() {
+        setTitle("Edit Company Supervisor Details");
+        setSize(800, 550);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // --- Header ---
+        JLabel titleLabel = new JLabel("Edit Company Supervisor Details", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        add(titleLabel, BorderLayout.NORTH);
+
+        // --- Content Panel (SplitPane) ---
+        JSplitPane splitPane = new JSplitPane();
+
+        // LEFT SIDE: Search & List
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        JPanel searchPanel = new JPanel();
+        searchField = new JTextField(10);
+        JButton searchBtn = new JButton("Search");
+        searchBtn.addActionListener(e -> loadSupervisors(searchField.getText()));
+        searchPanel.add(new JLabel("Name/ID:"));
+        searchPanel.add(searchField);
+        searchPanel.add(searchBtn);
+
+        // Table setup - Added ID column
+        String[] columns = {"ID", "Username", "Name", "Company"};
+        tableModel = new DefaultTableModel(columns, 0) {
+             @Override
+             public boolean isCellEditable(int row, int column) {
+                 return false;
+             }
+        };
+        supervisorTable = new JTable(tableModel);
+
+        // Click listener to populate form
+        supervisorTable.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                int row = supervisorTable.getSelectedRow();
+                if (row != -1) {
+                    String id = supervisorTable.getValueAt(row, 0).toString();
+                    loadSupervisorDetails(id);
+                }
+            }
+        });
+
+        leftPanel.add(searchPanel, BorderLayout.NORTH);
+        leftPanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
+
+        // RIGHT SIDE: Edit Form
+        JPanel rightPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Username
+        gbc.gridx = 0; gbc.gridy = 0; rightPanel.add(new JLabel("Username:"), gbc);
+        gbc.gridx = 1; userField = new JTextField(15); rightPanel.add(userField, gbc);
+
+        // Password
+        gbc.gridx = 0; gbc.gridy = 1; rightPanel.add(new JLabel("Password:"), gbc);
+        gbc.gridx = 1; passField = new JTextField(15); rightPanel.add(passField, gbc);
+
+        // Fullname
+        gbc.gridx = 0; gbc.gridy = 2; rightPanel.add(new JLabel("Fullname:"), gbc);
+        gbc.gridx = 1; nameField = new JTextField(15); rightPanel.add(nameField, gbc);
+
+        // Company Name
+        gbc.gridx = 0; gbc.gridy = 3; rightPanel.add(new JLabel("Company:"), gbc);
+        gbc.gridx = 1; companyField = new JTextField(15); rightPanel.add(companyField, gbc);
+
+        // Position
+        gbc.gridx = 0; gbc.gridy = 4; rightPanel.add(new JLabel("Position:"), gbc);
+        gbc.gridx = 1; positionField = new JTextField(15); rightPanel.add(positionField, gbc);
+
+        // Email
+        gbc.gridx = 0; gbc.gridy = 5; rightPanel.add(new JLabel("Email:"), gbc);
+        gbc.gridx = 1; emailField = new JTextField(15); rightPanel.add(emailField, gbc);
+
+        // Modify Button
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
+        JButton modifyBtn = new JButton("Modify");
+        modifyBtn.setBackground(new Color(220, 220, 220));
+        modifyBtn.addActionListener(e -> updateSupervisor());
+        rightPanel.add(modifyBtn, gbc);
+
+        splitPane.setLeftComponent(leftPanel);
+        splitPane.setRightComponent(rightPanel);
+        splitPane.setDividerLocation(350);
+        add(splitPane, BorderLayout.CENTER);
+
+        // --- Footer ---
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton backBtn = new JButton("Back Home");
+        backBtn.addActionListener(e -> dispose());
+        footerPanel.add(backBtn);
+        add(footerPanel, BorderLayout.SOUTH);
+
+        // Initial Load
+        loadSupervisors("");
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    private void loadSupervisors(String query) {
+        tableModel.setRowCount(0);
+        List<String[]> users = DBHelper.getUsersByRole("Company Supervisor", query);
+        for (String[] user : users) {
+            // Helper returns [ID, User, Name, Company]
+            tableModel.addRow(new Object[]{user[0], user[1], user[2], user[3]});
+        }
+    }
+
+    private void loadSupervisorDetails(String id) {
+        String[] details = DBHelper.getUserById(id);
+        if (details != null) {
+            // Helper Mapping for Company Sup: 
+            // 4=Position, 6=Email, 8=Company
+            currentId = details[0];
+            userField.setText(details[1]);
+            passField.setText(details[2]);
+            nameField.setText(details[3]);
+            positionField.setText(details[4]); // Col4
+            emailField.setText(details[6]);    // Col6
+            companyField.setText(details[8]);  // Col8
+        }
+    }
+
+    private void updateSupervisor() {
+        if (currentId == null) return;
+        
+        String newUser = userField.getText();
+        String newPass = passField.getText();
+        String newName = nameField.getText();
+        String newComp = companyField.getText();
+        String newPos = positionField.getText();
+        String newEmail = emailField.getText();
+
+        // Use the specific Helper method for Company Supervisor
+        DBHelper.updateCompanySupervisor(currentId, newUser, newPass, newName, newPos, newComp, newEmail);
+        
+        JOptionPane.showMessageDialog(this, "Updated Successfully!");
+        loadSupervisors(""); // Refresh table
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new EditCompanySupervisorUI().setVisible(true);
+        });
+    }
+}
