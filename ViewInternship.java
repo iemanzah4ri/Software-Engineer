@@ -18,12 +18,15 @@ public class ViewInternship extends JFrame {
 
     private void initComponents() {
         setTitle("View Internships");
-        setSize(800, 500);
+        setSize(900, 500);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        String[] cols = {"RegNo", "Company", "Location", "Job Description"};
-        tableModel = new DefaultTableModel(cols, 0);
+        // Updated columns
+        String[] cols = {"RegNo", "Company", "Location", "Job Title", "Job Description"};
+        tableModel = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int row, int col) { return false; }
+        };
         tblInternships = new JTable(tableModel);
         add(new JScrollPane(tblInternships), BorderLayout.CENTER);
 
@@ -31,7 +34,7 @@ public class ViewInternship extends JFrame {
         JButton btnApply = new JButton("Apply");
         JButton btnBack = new JButton("Back");
         
-        btnApply.addActionListener(e -> applyForJob());
+        btnApply.addActionListener(e -> openApplyWindow());
         btnBack.addActionListener(e -> dispose());
         
         panel.add(btnApply);
@@ -44,13 +47,14 @@ public class ViewInternship extends JFrame {
         tableModel.setRowCount(0);
         List<String[]> listings = DBHelper.getAllListings();
         for (String[] l : listings) {
-            if (l.length >= 5 && l[4].equalsIgnoreCase("Approved")) {
-                tableModel.addRow(new Object[]{l[0], l[1], l[2], l[3]});
+            // Check status at index 5 (new format)
+            if (l.length >= 6 && l[5].equalsIgnoreCase("Approved")) {
+                tableModel.addRow(new Object[]{l[0], l[1], l[2], l[3], l[4]});
             }
         }
     }
 
-    private void applyForJob() {
+    private void openApplyWindow() {
         int row = tblInternships.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Please select an internship.");
@@ -59,13 +63,16 @@ public class ViewInternship extends JFrame {
 
         String regNo = tableModel.getValueAt(row, 0).toString();
         String company = tableModel.getValueAt(row, 1).toString();
+        String location = tableModel.getValueAt(row, 2).toString();
+        String jobTitle = tableModel.getValueAt(row, 3).toString();
+        String jobDesc = tableModel.getValueAt(row, 4).toString();
 
         if (DBHelper.hasApplied(studentId, regNo)) {
             JOptionPane.showMessageDialog(this, "You have already applied for this job.");
             return;
         }
 
-        DBHelper.applyForInternship(studentId, regNo, company);
-        JOptionPane.showMessageDialog(this, "Application Submitted!");
+        new StudentApplyUI(studentId, regNo, company, location, jobTitle, jobDesc).setVisible(true);
+        dispose();
     }
 }

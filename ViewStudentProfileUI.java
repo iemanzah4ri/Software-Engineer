@@ -8,6 +8,7 @@ import java.util.List;
 
 public class ViewStudentProfileUI extends JFrame {
 
+    private String supervisorId;
     private JTextField searchField;
     private JTable studentTable;
     private DefaultTableModel tableModel;
@@ -15,7 +16,8 @@ public class ViewStudentProfileUI extends JFrame {
     private JLabel lblImage;
     private JTextField txtName, txtEmail, txtContact, txtAddress;
 
-    public ViewStudentProfileUI() {
+    public ViewStudentProfileUI(String supervisorId) {
+        this.supervisorId = supervisorId;
         initComponents();
         loadStudentList("");
     }
@@ -49,7 +51,9 @@ public class ViewStudentProfileUI extends JFrame {
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
         String[] cols = {"ID", "Name", "Intake"};
-        tableModel = new DefaultTableModel(cols, 0);
+        tableModel = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int row, int col) { return false; }
+        };
         studentTable = new JTable(tableModel);
         leftPanel.add(new JScrollPane(studentTable), BorderLayout.CENTER);
 
@@ -95,11 +99,8 @@ public class ViewStudentProfileUI extends JFrame {
         splitPane.setRightComponent(rightPanel);
 
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnBack = new JButton("Back Home");
-        btnBack.addActionListener(e -> {
-            this.dispose();
-            new CompanySupervisorHome().setVisible(true);
-        });
+        JButton btnBack = new JButton("Back");
+        btnBack.addActionListener(e -> dispose());
         footer.add(btnBack);
         add(footer, BorderLayout.SOUTH);
     }
@@ -107,24 +108,31 @@ public class ViewStudentProfileUI extends JFrame {
     private void loadStudentList(String query) {
         tableModel.setRowCount(0);
 
-        List<String[]> students = DBHelper.getUsersByRole("Student", query);
-        for (String[] s : students) {
-
-            String[] fullDetails = DBHelper.getUserById(s[0]);
-            String intake = (fullDetails != null) ? fullDetails[4] : "Unknown";
+        List<String[]> matches = DBHelper.getMatchesForSupervisor(supervisorId);
+        
+        for (String[] match : matches) {
+            String studentId = match[1]; 
             
-            tableModel.addRow(new Object[]{s[0], s[2], intake});
+            String[] studentUser = DBHelper.getUserById(studentId);
+            
+            if (studentUser != null) {
+                boolean matchesSearch = query.isEmpty() || 
+                                      studentUser[3].toLowerCase().contains(query.toLowerCase());
+                
+                if (matchesSearch) {
+                    tableModel.addRow(new Object[]{studentUser[0], studentUser[3], studentUser[4]});
+                }
+            }
         }
     }
 
     private void loadProfileDetails(String id) {
         String[] user = DBHelper.getUserById(id);
         if (user != null) {
-
             txtName.setText(user[3]);
-            txtEmail.setText(user[1] + "@student.edu.my"); 
-            txtContact.setText("012-3456789");
-            txtAddress.setText("Cyberjaya, Malaysia"); 
+            txtEmail.setText(user[6]); 
+            txtContact.setText(user[7]);
+            txtAddress.setText(user[8]); 
         }
     }
 }

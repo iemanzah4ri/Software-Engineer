@@ -172,7 +172,7 @@ public class LoginForm extends javax.swing.JFrame {
             String[] fullDetails = DBHelper.getUserById(u[0]);
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 this.dispose();
-                new CompanySupervisorHome(u[0]).setVisible(true); // Pass the proper ID
+                new CompanySupervisorHome(u[0]).setVisible(true); // Pass ID here
                 found = true;
                 break;
             }
@@ -207,7 +207,6 @@ public class LoginForm extends javax.swing.JFrame {
         boolean found = false;
         for (String[] u : users) {
             String[] fullDetails = DBHelper.getUserById(u[0]);
-            
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 found = true;
                 this.dispose();
