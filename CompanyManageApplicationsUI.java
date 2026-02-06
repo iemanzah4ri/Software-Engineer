@@ -6,7 +6,7 @@ import java.nio.file.*;
 
 public class CompanyManageApplicationsUI extends JFrame {
     private String companyName;
-    private String supervisorId; // New Field
+    private String supervisorId;
     private JTable appTable;
     private DefaultTableModel appModel;
 
@@ -34,15 +34,61 @@ public class CompanyManageApplicationsUI extends JFrame {
         add(new JScrollPane(appTable), BorderLayout.CENTER);
 
         JPanel p = new JPanel();
+        JButton btnViewResume = new JButton("View Resume");
+        JButton btnDownloadResume = new JButton("Download Resume");
         JButton btnApprove = new JButton("Approve");
         JButton btnReject = new JButton("Reject");
         JButton btnBack = new JButton("Back");
+
+        // --- VIEW RESUME ACTION ---
+        btnViewResume.addActionListener(e -> {
+            int r = appTable.getSelectedRow();
+            if (r == -1) { JOptionPane.showMessageDialog(this, "Select a student."); return; }
+            
+            String studentId = appModel.getValueAt(r, 1).toString();
+            File resume = DBHelper.getResumeFile(studentId);
+            
+            if (resume != null && resume.exists()) {
+                try {
+                    Desktop.getDesktop().open(resume);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Could not open file: " + ex.getMessage());
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "No resume uploaded for this student.");
+            }
+        });
+
+        // --- DOWNLOAD RESUME ACTION ---
+        btnDownloadResume.addActionListener(e -> {
+            int r = appTable.getSelectedRow();
+            if (r == -1) { JOptionPane.showMessageDialog(this, "Select a student."); return; }
+            
+            String studentId = appModel.getValueAt(r, 1).toString();
+            File resume = DBHelper.getResumeFile(studentId);
+            
+            if (resume != null && resume.exists()) {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setSelectedFile(new File(resume.getName()));
+                
+                if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    File target = chooser.getSelectedFile();
+                    try {
+                        Files.copy(resume.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        JOptionPane.showMessageDialog(this, "Resume downloaded successfully!");
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(this, "Error saving file: " + ex.getMessage());
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "No resume uploaded for this student.");
+            }
+        });
 
         btnApprove.addActionListener(e -> {
             int r = appTable.getSelectedRow();
             if(r==-1) { JOptionPane.showMessageDialog(this, "Select an application."); return; }
             
-            // Pass Supervisor ID to save match correctly
             String appId = appModel.getValueAt(r, 0).toString();
             DBHelper.approveApplication(appId, supervisorId);
             
@@ -58,7 +104,13 @@ public class CompanyManageApplicationsUI extends JFrame {
         });
 
         btnBack.addActionListener(e -> dispose());
-        p.add(btnBack); p.add(btnReject); p.add(btnApprove);
+        
+        p.add(btnBack); 
+        p.add(btnViewResume);
+        p.add(btnDownloadResume);
+        p.add(btnReject); 
+        p.add(btnApprove);
+        
         add(p, BorderLayout.SOUTH);
     }
 

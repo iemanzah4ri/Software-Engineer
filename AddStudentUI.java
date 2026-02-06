@@ -78,9 +78,6 @@ public class AddStudentUI extends JFrame {
         DBHelper.saveUser(user, pass, name, intake, "Student");
         
         JOptionPane.showMessageDialog(this, "Student Added Successfully!");
-        userField.setText("");
-        passField.setText("");
-        nameField.setText("");
-        intakeField.setText("");
+        dispose();
     }
 }

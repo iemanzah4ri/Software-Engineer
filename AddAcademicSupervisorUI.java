@@ -71,8 +71,6 @@ public class AddAcademicSupervisorUI extends JFrame {
         DBHelper.saveUser(user, pass, name, "N/A", "Academic Supervisor");
 
         JOptionPane.showMessageDialog(this, "Academic Supervisor Added Successfully!");
-        userField.setText("");
-        passField.setText("");
-        nameField.setText("");
+        dispose();
     }
 }

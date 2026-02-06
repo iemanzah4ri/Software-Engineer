@@ -46,7 +46,6 @@ public class DBHelper {
         return maxId + 1;
     }
 
-    // --- GENERIC FILE HELPERS ---
     private static List<String> readFile(String path) {
         List<String> lines = new ArrayList<>();
         File file = new File(path);
@@ -64,7 +63,6 @@ public class DBHelper {
         } catch (IOException e) {}
     }
 
-    // --- USER MANAGEMENT ---
     public static void saveUser(String user, String pass, String name, String intake, String role) {
         saveUserFull(user, pass, name, intake, role, "", "", "", "Not Placed");
     }
@@ -126,10 +124,10 @@ public class DBHelper {
         if(s!=null) updateUser(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], newStatus);
     }
 
-    // --- LISTINGS & APPLICATIONS ---
     public static void saveListing(String reg, String comp, String loc, String job, String desc, String status) {
         try(FileWriter fw = new FileWriter(LISTING_FILE, true); PrintWriter out = new PrintWriter(fw)){
-            out.println(reg+","+comp+","+loc+","+job+","+desc.replace("\n", " ")+","+status);
+            String safeDesc = desc.replace("\n", " ").replace(",", ";"); 
+            out.println(reg+","+comp+","+loc+","+job+","+safeDesc+","+status);
         } catch(IOException e){}
     }
     public static List<String[]> getAllListings() {
@@ -140,8 +138,8 @@ public class DBHelper {
         }
         return list;
     }
-    public static void approveListing(String r) { updateStatus(LISTING_FILE, r, 5, "Approved", 0); }
-    public static void rejectListing(String r) { updateStatus(LISTING_FILE, r, 5, "Rejected", 0); }
+    public static void approveListing(String r) { updateStatus(LISTING_FILE, r, -1, "Approved", 0); }
+    public static void rejectListing(String r) { updateStatus(LISTING_FILE, r, -1, "Rejected", 0); }
 
     public static void applyForInternship(String sid, String reg, String comp) {
         long id = generateNextId(APP_FILE, 0);
@@ -160,6 +158,8 @@ public class DBHelper {
                 String job = "Intern";
                 for(String[] lst : getAllListings()) if(lst[0].equals(d[2])) job = lst[3];
                 if(s!=null) saveMatch(sid, s[3], d[2], d[3], job, "N/A", companySvId);
+                
+                updateStatus(LISTING_FILE, d[2], -1, "Filled", 0);
                 break;
             }
         }
@@ -181,17 +181,14 @@ public class DBHelper {
         return list;
     }
 
-    // --- MATCHES ---
-    // Format: MatchID, StudentID, Name, RegNo, CompName, Job, Date, AcadSvID, CompSvID
     public static List<String[]> getAllMatches() {
         List<String[]> list = new ArrayList<>();
         for (String line : readFile(MATCH_FILE)) {
             String[] data = line.split(",", -1);
-            // AUTO-FIX: Pad old records to 9 columns
             if (data.length < 9) {
                 String[] newData = Arrays.copyOf(data, 9);
-                if(data.length <= 7) newData[7] = "N/A"; // AcadSV
-                if(data.length <= 8) newData[8] = "N/A"; // CompSV
+                if(data.length <= 7) newData[7] = "N/A";
+                if(data.length <= 8) newData[8] = "N/A";
                 list.add(newData);
             } else {
                 list.add(data);
@@ -199,7 +196,6 @@ public class DBHelper {
         }
         return list;
     }
-
     public static void saveMatch(String sid, String sname, String reg, String cname, String job, String aid, String cid) {
         long mid = generateNextId(MATCH_FILE, 0);
         try(FileWriter fw = new FileWriter(MATCH_FILE, true); PrintWriter out = new PrintWriter(fw)){
@@ -207,53 +203,41 @@ public class DBHelper {
         } catch(IOException e){}
         updateStudentPlacement(sid, "Placed");
     }
-
-    // *** FIX: Robust Match Finding ***
     public static List<String[]> getMatchesForSupervisor(String supervisorId) {
         List<String[]> list = new ArrayList<>();
         String[] user = getUserById(supervisorId);
-        // Fallback name for legacy company matches
         String compName = (user != null && user.length > 8) ? user[8] : "Unknown";
 
         for (String[] m : getAllMatches()) {
             boolean isAcademicMatch = m[7].equals(supervisorId);
             boolean isCompanyMatch = m[8].equals(supervisorId);
-            // Legacy check: If CompanyID is N/A, check Company Name
             boolean isLegacyCompanyMatch = m[8].equals("N/A") && m[4].equalsIgnoreCase(compName);
 
-            if (isAcademicMatch || isCompanyMatch || isLegacyCompanyMatch) {
-                list.add(m);
-            }
+            if (isAcademicMatch || isCompanyMatch || isLegacyCompanyMatch) list.add(m);
         }
         return list;
     }
-
     public static List<String[]> getMatchesMissingSupervisor() {
         List<String[]> list = new ArrayList<>();
         for (String[] m : getAllMatches()) {
-            // Check if Academic SV column (7) is N/A or empty
             if (m[7].trim().isEmpty() || m[7].equalsIgnoreCase("N/A")) list.add(m);
         }
         return list;
     }
-
     public static void assignAcademicSupervisor(String matchId, String acadSvId) {
         List<String[]> matches = getAllMatches();
         List<String> lines = new ArrayList<>();
         for (String[] m : matches) {
-            if (m[0].equals(matchId)) {
-                m[7] = acadSvId; // Update ID
-            }
+            if (m[0].equals(matchId)) m[7] = acadSvId;
             lines.add(String.join(",", m));
         }
         writeFile(MATCH_FILE, lines);
     }
 
-    // --- LOGBOOKS & ATTENDANCE ---
     public static void saveLogbookEntry(String sid, String date, String act, String hours) {
         long id = generateNextId(LOG_FILE, 0);
         try(FileWriter fw = new FileWriter(LOG_FILE, true); PrintWriter out = new PrintWriter(fw)){
-            out.println(String.format("%07d", id)+","+sid+","+date+","+act.replace(",", " ")+","+hours+",Pending");
+            out.println(String.format("%07d", id)+","+sid+","+date+","+act.replace(",", ";")+","+hours+",Pending");
         } catch(IOException e){}
     }
     public static List<String[]> getAllLogbooks() {
@@ -269,13 +253,23 @@ public class DBHelper {
         }
         return list;
     }
-    public static void updateLogbookStatus(String logId, String status) { updateStatus(LOG_FILE, logId, 5, status, 0); }
+    public static double getTotalVerifiedHours(String studentId) {
+        double total = 0;
+        List<String[]> logs = getLogbooksByStudent(studentId);
+        for (String[] log : logs) {
+            if (log.length >= 6 && "Verified".equalsIgnoreCase(log[5])) {
+                try { total += Double.parseDouble(log[4]); } catch (NumberFormatException e) {}
+            }
+        }
+        return total;
+    }
+    public static void updateLogbookStatus(String logId, String status) { updateStatus(LOG_FILE, logId, -1, status, 0); }
     public static void updateLogbookEntry(String logId, String d, String a, String h) {
         List<String> lines = readFile(LOG_FILE);
         List<String> newLines = new ArrayList<>();
         for(String l : lines) {
             String[] dt = l.split(",");
-            if(dt[0].equals(logId)) newLines.add(dt[0]+","+dt[1]+","+d+","+a+","+h+","+dt[5]);
+            if(dt[0].equals(logId)) newLines.add(dt[0]+","+dt[1]+","+d+","+a.replace(",", ";")+","+h+","+dt[5]);
             else newLines.add(l);
         }
         writeFile(LOG_FILE, newLines);
@@ -308,7 +302,6 @@ public class DBHelper {
         }
         return list;
     }
-
     public static void saveCompanyFeedback(String sid, String sname, String cname, String sc, String fb) {
         saveFeedback(COMPANY_FEEDBACK_FILE, sid, sname, cname, sc, fb);
     }
@@ -342,7 +335,6 @@ public class DBHelper {
         if(cs.equals("N/A") && as.equals("N/A")) return null;
         return new String[]{"0", sid, "Student", cn, "Completed", cs, as, cf, af};
     }
-
     public static boolean saveResume(File s, String sid) { return saveFile(s, RESUME_FOLDER + File.separator + sid); }
     public static boolean saveProfileImage(File s, String sid) { return saveFile(s, PFP_FOLDER + File.separator + sid + "_profile"); }
     public static File getResumeFile(String sid) { 
@@ -357,11 +349,19 @@ public class DBHelper {
         String ext = ""; int i=s.getName().lastIndexOf('.'); if(i>0) ext=s.getName().substring(i);
         try { Files.copy(s.toPath(), new File(d+ext).toPath(), StandardCopyOption.REPLACE_EXISTING); return true; } catch(IOException e){return false;}
     }
+
     private static void updateStatus(String fp, String id, int col, String val, int idCol) {
         List<String> ln = new ArrayList<>();
         for(String l : readFile(fp)) {
             String[] d = l.split(",");
-            if(d.length>col && d[idCol].equals(id)) { d[col]=val; ln.add(String.join(",", d)); }
+            if(d.length > 0 && d[idCol].equals(id)) { 
+                int targetCol = (col == -1) ? (d.length - 1) : col;
+                
+                if (targetCol < d.length) {
+                    d[targetCol] = val;
+                }
+                ln.add(String.join(",", d));
+            }
             else ln.add(l);
         }
         writeFile(fp, ln);

@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
@@ -18,29 +19,62 @@ public class StudentLogbook extends JFrame {
 
     private void initComponents() {
         setTitle("Daily Logbook");
-        setSize(800, 500);
+        setSize(850, 600);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        JPanel inputPanel = new JPanel(new GridLayout(3, 2));
-        inputPanel.add(new JLabel("Activity Description:"));
+        // Main container with outer padding
+        JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
+        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        // --- Top Section: Input Form ---
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(BorderFactory.createTitledBorder("New Log Entry"));
+
+        // Inputs Container
+        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10)); // Rows, Cols, Hgap, Vgap
+        formPanel.setBorder(new EmptyBorder(10, 10, 5, 10)); // Inner padding
+
+        formPanel.add(new JLabel("Activity Description:"));
         txtActivity = new JTextField();
-        inputPanel.add(txtActivity);
+        formPanel.add(txtActivity);
         
-        inputPanel.add(new JLabel("Hours Spent:"));
+        formPanel.add(new JLabel("Hours Spent:"));
         txtHours = new JTextField();
-        inputPanel.add(txtHours);
+        formPanel.add(txtHours);
+        
+        topPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Buttons Container (Back & Submit)
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        
+        JButton btnBack = new JButton("Back");
+        btnBack.addActionListener(e -> dispose()); // Closes window
         
         JButton btnSubmit = new JButton("Submit Entry");
         btnSubmit.addActionListener(e -> saveLog());
-        inputPanel.add(btnSubmit);
         
-        add(inputPanel, BorderLayout.NORTH);
+        
+        btnPanel.add(btnSubmit);
+        btnPanel.add(btnBack);
+        
+        topPanel.add(btnPanel, BorderLayout.SOUTH);
 
+        // Add Top Section to Main
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+
+        // --- Center Section: Table ---
         String[] cols = {"Date", "Activity", "Hours", "Status"};
         tableModel = new DefaultTableModel(cols, 0);
         tblLogs = new JTable(tableModel);
-        add(new JScrollPane(tblLogs), BorderLayout.CENTER);
+        tblLogs.setRowHeight(25); // More breathing room for rows
+        
+        JScrollPane scrollPane = new JScrollPane(tblLogs);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Log History"));
+        
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        add(mainPanel);
         setLocationRelativeTo(null);
     }
 

@@ -78,7 +78,7 @@ public class StudentProfile extends JFrame {
         btnSave.setBackground(new Color(100, 200, 100));
         btnSave.addActionListener(e -> saveData());
 
-        JButton btnClose = new JButton("Close");
+        JButton btnClose = new JButton("Back");
         btnClose.addActionListener(e -> handleCloseAction());
 
         buttonPanel.add(btnSave);

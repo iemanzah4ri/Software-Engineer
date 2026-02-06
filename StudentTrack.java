@@ -24,9 +24,19 @@ public class StudentTrack extends JFrame {
         
         add(new JScrollPane(tblApps), BorderLayout.CENTER);
         
+        // Bottom Panel for Buttons (Aligned Right)
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        
         JButton btnRefresh = new JButton("Refresh");
         btnRefresh.addActionListener(e -> loadApplications());
-        add(btnRefresh, BorderLayout.SOUTH);
+        
+        JButton btnBack = new JButton("Back");
+        btnBack.addActionListener(e -> dispose());
+        
+        bottomPanel.add(btnRefresh);
+        bottomPanel.add(btnBack);
+        
+        add(bottomPanel, BorderLayout.SOUTH);
         setLocationRelativeTo(null);
     }
 

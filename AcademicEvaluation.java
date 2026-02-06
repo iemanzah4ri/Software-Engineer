@@ -26,18 +26,34 @@ public class AcademicEvaluation extends JFrame {
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        // South Panel for inputs
         JPanel p = new JPanel(new GridLayout(3, 1));
+        
+        // Row 1: Score
         txtScore = new JTextField(); 
         JPanel scoreP = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        scoreP.add(new JLabel("Score (0-100): ")); scoreP.add(txtScore); txtScore.setColumns(10);
+        scoreP.add(new JLabel("Score (0-100): ")); 
+        scoreP.add(txtScore); 
+        txtScore.setColumns(10);
         p.add(scoreP);
         
+        // Row 2: Feedback
         txtFeedback = new JTextArea(); 
         p.add(new JScrollPane(txtFeedback));
         
-        JButton btn = new JButton("Submit");
-        btn.addActionListener(e -> submit());
-        p.add(btn);
+        // Row 3: Buttons (Back and Submit)
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        
+        JButton btnBack = new JButton("Back");
+        btnBack.addActionListener(e -> dispose()); // Closes window
+        
+        JButton btnSubmit = new JButton("Submit");
+        btnSubmit.addActionListener(e -> submit());
+        
+        btnPanel.add(btnBack);
+        btnPanel.add(btnSubmit);
+        
+        p.add(btnPanel);
         
         add(p, BorderLayout.SOUTH);
     }
