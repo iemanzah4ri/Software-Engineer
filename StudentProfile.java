@@ -36,7 +36,6 @@ public class StudentProfile extends JFrame {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // --- Profile Picture Section ---
         lblProfilePicPreview = new JLabel();
         lblProfilePicPreview.setPreferredSize(new Dimension(150, 150));
         lblProfilePicPreview.setBorder(BorderFactory.createLineBorder(Color.GRAY));
@@ -53,7 +52,6 @@ public class StudentProfile extends JFrame {
         
         mainPanel.add(picContainer);
 
-        // --- Form Fields ---
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -118,7 +116,6 @@ public class StudentProfile extends JFrame {
     private void updatePreviewLabel(File imageFile) {
         if (imageFile == null || !imageFile.exists()) return;
         
-        // Use ImageIcon for robustness; Scale to 150x150 explicitly
         ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
         if (icon.getIconWidth() > 0) {
             Image img = icon.getImage();

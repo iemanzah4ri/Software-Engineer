@@ -17,13 +17,11 @@ public class EditStudentUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Header
         JLabel titleLabel = new JLabel("Edit Student Details", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
 
 
-          // --- Footer ---
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton backBtn = new JButton("Back Home");
         backBtn.addActionListener(e -> dispose());
@@ -31,7 +29,6 @@ public class EditStudentUI extends JFrame {
         add(footerPanel, BorderLayout.SOUTH);
         JSplitPane splitPane = new JSplitPane();
 
-        // Search & List
         JPanel leftPanel = new JPanel(new BorderLayout());
         JPanel searchPanel = new JPanel();
         searchField = new JTextField(10);
@@ -59,7 +56,6 @@ public class EditStudentUI extends JFrame {
         leftPanel.add(searchPanel, BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(studentTable), BorderLayout.CENTER);
 
-        // Edit Form
         JPanel rightPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -112,7 +108,6 @@ public class EditStudentUI extends JFrame {
 
     private void updateStudent() {
         if (currentId == null) return;
-        // Use the new specific wrapper in DBHelper
         DBHelper.updateStudent(currentId, userField.getText(), passField.getText(), nameField.getText(), matricField.getText());
         JOptionPane.showMessageDialog(this, "Updated Successfully!");
         loadStudents(""); 

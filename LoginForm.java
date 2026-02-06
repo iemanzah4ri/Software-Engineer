@@ -180,7 +180,6 @@ public class LoginForm extends javax.swing.JFrame {
         if (!found) JOptionPane.showMessageDialog(this, "Invalid Company Supervisor Credentials!");
     }                                          
 
-    // --- FIX IS HERE ---
     private void btnLecturerLoginActionPerformed(java.awt.event.ActionEvent evt) {                                                 
         String inputUser = txtUsername.getText();
         String inputPass = String.valueOf(txtPassword.getPassword());
@@ -192,7 +191,6 @@ public class LoginForm extends javax.swing.JFrame {
             String[] fullDetails = DBHelper.getUserById(u[0]);
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 this.dispose();
-                // FIXED: Now correctly passes the ID (u[0]) to the Dashboard
                 new AcademicSupervisorHome(u[0]).setVisible(true); 
                 found = true;
                 break;

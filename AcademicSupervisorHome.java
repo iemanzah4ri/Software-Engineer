@@ -12,6 +12,29 @@ public class AcademicSupervisorHome extends JFrame {
         initComponents();
         setSize(800, 600);
         setLocationRelativeTo(null);
+        checkNotifications();
+    }
+    
+    private void checkNotifications() {
+        if (NotificationHelper.hasUnreadNotifications(supervisorId)) {
+            SwingUtilities.invokeLater(() -> {
+                int unreadCount = countUnreadNotifications();
+                JOptionPane.showMessageDialog(this, 
+                    "You have " + unreadCount + " unread notification(s)!", 
+                    "New Notifications", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            });
+        }
+    }
+
+    private int countUnreadNotifications() {
+        int count = 0;
+        for (String[] notif : NotificationHelper.getNotifications(supervisorId)) {
+            if (notif.length >= 5 && notif[4].equalsIgnoreCase("Unread")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void initComponents() {
@@ -28,27 +51,21 @@ public class AcademicSupervisorHome extends JFrame {
         JPanel buttons = new JPanel(new GridLayout(6, 1, 10, 10));
         buttons.setBorder(BorderFactory.createEmptyBorder(20, 150, 20, 150));
 
-        // b1
-        JButton b1 = new JButton("View Assigned Student Profile"); // Placeholder from your original code? 
+        JButton b1 = new JButton("View Assigned Student Profile");
         b1.addActionListener(e -> new ViewStudentProfileUI(supervisorId).setVisible(true));
 
-        // b2
         JButton b2 = new JButton("View Student Logbook");
         b2.addActionListener(e -> new AcademicViewLogbooksUI().setVisible(true));
         
-        // b3
         JButton b3 = new JButton("Submit Academic Evaluation");
         b3.addActionListener(e -> new AcademicEvaluation(supervisorId).setVisible(true));
 
-        // b4 - THIS IS THE NEW FEATURE
         JButton b4 = new JButton("View Internship Progress Dashboard");
         b4.addActionListener(e -> new AcademicViewProgressUI(supervisorId).setVisible(true));
 
-        // b5
         JButton b5 = new JButton("View Notifications");
-        b5.addActionListener(e -> JOptionPane.showMessageDialog(this, "No new notifications."));
+        b5.addActionListener(e -> new NotificationViewUI(supervisorId).setVisible(true));
 
-        // bOut
         JButton bOut = new JButton("Logout");
         bOut.addActionListener(e -> { dispose(); new LoginForm().setVisible(true); });
 

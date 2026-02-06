@@ -16,6 +16,7 @@ public class StudentHome extends JFrame {
             initComponents();
             setSize(800, 600);
             setLocationRelativeTo(null);
+            checkNotifications();
         }
     }
     
@@ -29,6 +30,28 @@ public class StudentHome extends JFrame {
             return;
         }
         super.setVisible(b);
+    }
+    
+    private void checkNotifications() {
+        if (NotificationHelper.hasUnreadNotifications(studentId)) {
+            SwingUtilities.invokeLater(() -> {
+                int unreadCount = countUnreadNotifications();
+                JOptionPane.showMessageDialog(this, 
+                    "You have " + unreadCount + " unread notification(s)!", 
+                    "New Notifications", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            });
+        }
+    }
+
+    private int countUnreadNotifications() {
+        int count = 0;
+        for (String[] notif : NotificationHelper.getNotifications(studentId)) {
+            if (notif.length >= 5 && notif[4].equalsIgnoreCase("Unread")) {
+                count++;
+            }
+        }
+        return count;
     }
     
     private boolean checkProfileStatus() {
@@ -112,6 +135,9 @@ public class StudentHome extends JFrame {
             }
         });
         
+        JButton btnNotif = new JButton("View Notifications");
+        btnNotif.addActionListener(e -> new NotificationViewUI(studentId).setVisible(true));
+        
         JButton btnLogout = new JButton("Logout");
         btnLogout.addActionListener(e -> {
             this.dispose();
@@ -124,6 +150,7 @@ public class StudentHome extends JFrame {
         buttons.add(btnSubmitLog);
         buttons.add(btnAttendance);
         buttons.add(btnProgress);
+        buttons.add(btnNotif);
         buttons.add(btnLogout);
 
         add(buttons, BorderLayout.CENTER);

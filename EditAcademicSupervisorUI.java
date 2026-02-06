@@ -22,7 +22,6 @@ public class EditAcademicSupervisorUI extends JFrame {
         add(titleLabel, BorderLayout.NORTH);
 
 
-          // --- Footer ---
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton backBtn = new JButton("Back Home");
         backBtn.addActionListener(e -> dispose());
@@ -109,7 +108,6 @@ public class EditAcademicSupervisorUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Please select a supervisor first.");
             return;
         }
-        // Use the new wrapper
         DBHelper.updateAcademicSupervisor(currentId, userField.getText(), passField.getText(), nameField.getText());
         JOptionPane.showMessageDialog(this, "Updated Successfully!");
         loadSupervisors("");

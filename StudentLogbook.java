@@ -23,15 +23,12 @@ public class StudentLogbook extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Main container with outer padding
         JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        // --- Top Section: Input Form ---
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBorder(BorderFactory.createTitledBorder("New Log Entry"));
 
-        // Inputs Container
         JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10)); // Rows, Cols, Hgap, Vgap
         formPanel.setBorder(new EmptyBorder(10, 10, 5, 10)); // Inner padding
 
@@ -45,7 +42,6 @@ public class StudentLogbook extends JFrame {
         
         topPanel.add(formPanel, BorderLayout.CENTER);
 
-        // Buttons Container (Back & Submit)
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         
         JButton btnBack = new JButton("Back");
@@ -60,10 +56,8 @@ public class StudentLogbook extends JFrame {
         
         topPanel.add(btnPanel, BorderLayout.SOUTH);
 
-        // Add Top Section to Main
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // --- Center Section: Table ---
         String[] cols = {"Date", "Activity", "Hours", "Status"};
         tableModel = new DefaultTableModel(cols, 0);
         tblLogs = new JTable(tableModel);

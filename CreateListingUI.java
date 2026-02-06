@@ -8,7 +8,6 @@ public class CreateListingUI extends JFrame {
     private String userRole; 
     private String prefilledCompany;
 
-    // Constructor for Company Supervisor (Auto-fills company)
     public CreateListingUI(String role, String companyName) {
         this.userRole = role;
         this.prefilledCompany = companyName;
@@ -18,7 +17,6 @@ public class CreateListingUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
     }
 
-    // Default Constructor for Admin (No auto-fill)
     public CreateListingUI(String role) {
         this(role, "");
     }
@@ -44,7 +42,6 @@ public class CreateListingUI extends JFrame {
         txtJobDesc = new JTextArea(5, 20);
         txtJobDesc.setLineWrap(true);
 
-        // Logic to auto-fill and lock company name
         if (userRole.equals("Company Supervisor") && !prefilledCompany.isEmpty()) {
             txtCompany.setText(prefilledCompany);
             txtCompany.setEditable(false);
@@ -96,7 +93,6 @@ public class CreateListingUI extends JFrame {
         String status = userRole.equals("Admin") ? "Approved" : "Pending";
         String message = userRole.equals("Admin") ? "Listing Published!" : "Listing Submitted for Approval.";
 
-        // Correct 6-argument call
         DBHelper.saveListing(reg, comp, loc, jName, jDesc, status);
         JOptionPane.showMessageDialog(this, message);
         dispose();

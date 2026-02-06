@@ -26,10 +26,8 @@ public class CompanyEvaluation extends JFrame {
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // South Panel for inputs
         JPanel p = new JPanel(new GridLayout(3, 1));
         
-        // Row 1: Score
         txtScore = new JTextField(); 
         JPanel scoreP = new JPanel(new FlowLayout(FlowLayout.LEFT));
         scoreP.add(new JLabel("Score (0-100): ")); 
@@ -37,11 +35,9 @@ public class CompanyEvaluation extends JFrame {
         txtScore.setColumns(10);
         p.add(scoreP);
         
-        // Row 2: Feedback
         txtFeedback = new JTextArea();
         p.add(new JScrollPane(txtFeedback));
         
-        // Row 3: Buttons (Back and Submit)
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         
         JButton btnBack = new JButton("Back");
@@ -60,7 +56,6 @@ public class CompanyEvaluation extends JFrame {
 
     private void loadStudents() {
         model.setRowCount(0);
-        // Using the same unified method
         for(String[] m : DBHelper.getMatchesForSupervisor(supervisorId)) {
             model.addRow(new Object[]{m[1], m[2], m[5]});
         }

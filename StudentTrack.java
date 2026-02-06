@@ -89,6 +89,10 @@ public class StudentTrack extends JFrame {
         if (row == -1) { JOptionPane.showMessageDialog(this, "Select an offer to accept."); return; }
         
         String status = tableModel.getValueAt(row, 3).toString();
+        if (status.equalsIgnoreCase("Position Filled")) {
+            JOptionPane.showMessageDialog(this, "Cannot accept. This position has been filled by another candidate.");
+            return;
+        }
         if (!status.equalsIgnoreCase("Offered")) {
             JOptionPane.showMessageDialog(this, "You can only accept 'Offered' applications.");
             return;
@@ -103,8 +107,13 @@ public class StudentTrack extends JFrame {
         int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to accept this offer?\nThis will finalize your placement.", "Confirm Acceptance", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             String appId = tableModel.getValueAt(row, 0).toString();
-            DBHelper.acceptOffer(appId);
-            JOptionPane.showMessageDialog(this, "Offer Accepted! You have been placed.");
+            boolean success = DBHelper.acceptOffer(appId);
+            
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Offer Accepted! You have been placed.");
+            } else {
+                JOptionPane.showMessageDialog(this, "Failed. This position has already been filled by another candidate.");
+            }
             loadApplications();
         }
     }

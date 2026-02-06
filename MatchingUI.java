@@ -18,18 +18,15 @@ public class MatchingUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Main container for the two tables
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Panel 1: Students
         JPanel p1 = new JPanel(new BorderLayout());
         p1.setBorder(BorderFactory.createTitledBorder("Placed Students (No SV)"));
         placedModel = new DefaultTableModel(new String[]{"MatchID", "Student", "Company"}, 0);
         placedTable = new JTable(placedModel);
         p1.add(new JScrollPane(placedTable));
 
-        // Panel 2: Supervisors
         JPanel p2 = new JPanel(new BorderLayout());
         p2.setBorder(BorderFactory.createTitledBorder("Academic Supervisors"));
         svModel = new DefaultTableModel(new String[]{"ID", "Name"}, 0);
@@ -40,7 +37,6 @@ public class MatchingUI extends JFrame {
         centerPanel.add(p2);
         add(centerPanel, BorderLayout.CENTER);
 
-        // Footer Panel for Buttons
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         
         JButton btnAssign = new JButton("Assign Supervisor");

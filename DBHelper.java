@@ -3,8 +3,8 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
@@ -73,9 +73,20 @@ public class DBHelper {
     public static void saveCompanySupervisor(String user, String pass, String name, String pos, String comp, String email) {
         saveUserFull(user, pass, name, pos, "Company Supervisor", email, "", comp, "N/A");
     }
+    public static void saveAcademicSupervisor(String user, String pass, String name, String email) {
+        saveUserFull(user, pass, name, "", "Academic Supervisor", email, "", "", "N/A");
+    }
+
     private static void saveUserFull(String user, String pass, String name, String c4, String role, String c6, String c7, String c8, String c9) {
         long id = generateNextId(FILE_NAME, 0);
-        String formattedId = String.format("%07d", id);
+        
+        String prefix = "U-";
+        if (role.equalsIgnoreCase("Student")) prefix = "S-";
+        else if (role.equalsIgnoreCase("Company Supervisor")) prefix = "C-";
+        else if (role.equalsIgnoreCase("Academic Supervisor")) prefix = "A-";
+
+        String formattedId = prefix + String.format("%05d", id);
+        
         try (FileWriter fw = new FileWriter(FILE_NAME, true); PrintWriter out = new PrintWriter(fw)) {
             out.println(formattedId + "," + user + "," + pass + "," + name + "," + (c4==null?"":c4) + "," + role + "," + 
                         (c6==null?"":c6) + "," + (c7==null?"":c7) + "," + (c8==null?"":c8) + "," + (c9==null?"":c9));
@@ -135,6 +146,8 @@ public class DBHelper {
             String safeDesc = desc.replace("\n", " ").replace(",", ";"); 
             out.println(listingId+","+reg+","+comp+","+loc+","+job+","+safeDesc+","+status);
         } catch(IOException e){}
+        
+        NotificationHelper.broadcastNotification("ROLE_ADMIN", "New Listing Posted by " + comp + ": " + job);
     }
     
     public static List<String[]> getAllListings() {
@@ -150,9 +163,12 @@ public class DBHelper {
 
     public static void applyForInternship(String sid, String listingId, String comp) {
         long id = generateNextId(APP_FILE, 0);
+        String appId = "App-" + String.format("%05d", id);
         try(FileWriter fw = new FileWriter(APP_FILE, true); PrintWriter out = new PrintWriter(fw)){
-            out.println(String.format("%07d", id)+","+sid+","+listingId+","+comp+",Pending,N/A");
+            out.println(appId+","+sid+","+listingId+","+comp+",Pending,N/A");
         } catch(IOException e){}
+        
+        NotificationHelper.broadcastNotification("ROLE_COMPANY", "New application received for listing " + listingId);
     }
 
     public static void sendOffer(String appId, String startDate, File contractFile) {
@@ -162,23 +178,32 @@ public class DBHelper {
 
         List<String> lines = readFile(APP_FILE);
         List<String> newLines = new ArrayList<>();
+        String studentId = "";
+        
         for(String line : lines) {
             String[] d = line.split(",");
             if(d[0].equals(appId)) {
                 d[4] = "Offered";
                 if(d.length > 5) d[5] = startDate;
                 else line = String.join(",", d) + "," + startDate;
+                studentId = d[1];
                 newLines.add(String.join(",", d));
             } else {
                 newLines.add(line);
             }
         }
         writeFile(APP_FILE, newLines);
+        
+        if(!studentId.isEmpty()) {
+            NotificationHelper.sendNotification(studentId, "You have received an Internship Offer! Check your applications.");
+        }
     }
 
-    public static void acceptOffer(String appId) {
+    public static boolean acceptOffer(String appId) {
         String[] appData = null;
-        for(String line : readFile(APP_FILE)) {
+        List<String> allApps = readFile(APP_FILE);
+        
+        for(String line : allApps) {
             String[] d = line.split(",");
             if(d[0].equals(appId)) {
                 appData = d;
@@ -186,11 +211,19 @@ public class DBHelper {
             }
         }
         
-        if(appData == null) return;
+        if(appData == null) return false;
 
         String sid = appData[1];
         String listingId = appData[2];
         String startDate = (appData.length > 5) ? appData[5] : "N/A";
+
+        for(String[] lst : getAllListings()) {
+            if(lst[0].equals(listingId)) {
+                if(lst[6].equalsIgnoreCase("Filled")) {
+                    return false;
+                }
+            }
+        }
         
         String[] s = getUserById(sid);
         String job = "Intern";
@@ -216,10 +249,58 @@ public class DBHelper {
         if(s != null) saveMatch(sid, s[3], listingReg, appData[3], job, startDate, "N/A", compSvId);
         
         updateStatus(LISTING_FILE, listingId, -1, "Filled", 0);
-        updateStatus(APP_FILE, appId, 4, "Accepted", 0);
+        
+        List<String> updatedApps = new ArrayList<>();
+        for(String line : allApps) {
+            String[] d = line.split(",");
+            if(d.length < 2) { updatedApps.add(line); continue; }
+            
+            if(d[1].equals(sid)) {
+                if(d[0].equals(appId)) {
+                    d[4] = "Accepted"; 
+                } else {
+                    if(d[4].equalsIgnoreCase("Pending") || d[4].equalsIgnoreCase("Offered")) {
+                        d[4] = "Withdrawn"; 
+                    }
+                }
+                updatedApps.add(String.join(",", d));
+            } 
+            else if (d[2].equals(listingId)) {
+                 if(d[4].equalsIgnoreCase("Pending") || d[4].equalsIgnoreCase("Offered")) {
+                    d[4] = "Position Filled";
+                    NotificationHelper.sendNotification(d[1], "The position for " + listingId + " has been filled by another candidate.");
+                 }
+                 updatedApps.add(String.join(",", d));
+            }
+            else {
+                updatedApps.add(line);
+            }
+        }
+        writeFile(APP_FILE, updatedApps);
+        
+        if(compSvId != null && !compSvId.equals("N/A")) {
+            NotificationHelper.sendNotification(compSvId, "Offer Accepted! Student " + s[3] + " has joined your company.");
+        }
+        NotificationHelper.broadcastNotification("ROLE_ADMIN", "Match Confirmed: " + s[3] + " at " + appData[3]);
+        
+        return true;
     }
 
-    public static void rejectApplication(String appId) { updateStatus(APP_FILE, appId, 4, "Rejected", 0); }
+    public static void rejectApplication(String appId) { 
+        updateStatus(APP_FILE, appId, 4, "Rejected", 0); 
+        
+        String studentId = "";
+        for(String line : readFile(APP_FILE)) {
+            String[] d = line.split(",");
+            if(d[0].equals(appId)) {
+                studentId = d[1];
+                break;
+            }
+        }
+        if(!studentId.isEmpty()) {
+            NotificationHelper.sendNotification(studentId, "Your application " + appId + " was unsuccessful.");
+        }
+    }
     
     public static File getContractFile(String appId) {
         File f = new File(CONTRACT_FOLDER + File.separator + appId + ".pdf");
@@ -288,11 +369,20 @@ public class DBHelper {
     public static void assignAcademicSupervisor(String matchId, String acadSvId) {
         List<String[]> matches = getAllMatches();
         List<String> lines = new ArrayList<>();
+        String studentName = "";
+        String compName = "";
+        
         for (String[] m : matches) {
-            if (m[0].equals(matchId)) m[7] = acadSvId;
+            if (m[0].equals(matchId)) {
+                m[7] = acadSvId;
+                studentName = m[2];
+                compName = m[4];
+            }
             lines.add(String.join(",", m));
         }
         writeFile(MATCH_FILE, lines);
+        
+        NotificationHelper.sendNotification(acadSvId, "You have been assigned to supervise " + studentName + " at " + compName);
     }
 
     public static void saveLogbookEntry(String sid, String date, String act, String hours) {
@@ -300,6 +390,8 @@ public class DBHelper {
         try(FileWriter fw = new FileWriter(LOG_FILE, true); PrintWriter out = new PrintWriter(fw)){
             out.println(String.format("%07d", id)+","+sid+","+date+","+act.replace(",", ";")+","+hours+",Pending");
         } catch(IOException e){}
+        
+        NotificationHelper.broadcastNotification("ROLE_COMPANY", "New Logbook Entry from " + sid);
     }
     public static List<String[]> getAllLogbooks() {
         List<String[]> list = new ArrayList<>();
@@ -324,7 +416,21 @@ public class DBHelper {
         }
         return total;
     }
-    public static void updateLogbookStatus(String logId, String status) { updateStatus(LOG_FILE, logId, -1, status, 0); }
+    public static void updateLogbookStatus(String logId, String status) { 
+        updateStatus(LOG_FILE, logId, -1, status, 0); 
+        
+        String studentId = "";
+        for(String line : readFile(LOG_FILE)) {
+            String[] d = line.split(",");
+            if(d[0].equals(logId)) {
+                studentId = d[1];
+                break;
+            }
+        }
+        if(!studentId.isEmpty()) {
+            NotificationHelper.sendNotification(studentId, "Logbook Entry " + logId + " status: " + status);
+        }
+    }
     public static void updateLogbookEntry(String logId, String d, String a, String h) {
         List<String> lines = readFile(LOG_FILE);
         List<String> newLines = new ArrayList<>();
@@ -358,6 +464,18 @@ public class DBHelper {
     
     public static void updateAttendanceStatus(String attId, String status) {
         updateStatus(ATTENDANCE_FILE, attId, 6, status, 0);
+        
+        String studentId = "";
+        for(String line : readFile(ATTENDANCE_FILE)) {
+            String[] d = line.split(",");
+            if(d[0].equals(attId)) {
+                studentId = d[1];
+                break;
+            }
+        }
+        if(!studentId.isEmpty()) {
+            NotificationHelper.sendNotification(studentId, "Attendance record verified: " + status);
+        }
     }
     
     public static void updateAttendanceEntry(String attId, String date, String in, String out, String status) {
@@ -435,9 +553,12 @@ public class DBHelper {
     
     public static void saveCompanyFeedback(String sid, String sname, String cname, String sc, String fb) {
         saveFeedback(COMPANY_FEEDBACK_FILE, sid, sname, cname, sc, fb);
+        NotificationHelper.sendNotification(sid, "Company Supervisor has submitted your evaluation.");
+        NotificationHelper.broadcastNotification("ROLE_ACADEMIC", "Company evaluation submitted for " + sname);
     }
     public static void saveAcademicFeedback(String sid, String sname, String sc, String fb) {
         saveFeedback(ACADEMIC_FEEDBACK_FILE, sid, sname, "Academic Supervisor", sc, fb);
+        NotificationHelper.sendNotification(sid, "Academic Supervisor has submitted your evaluation.");
     }
     private static void saveFeedback(String fp, String sid, String sname, String by, String sc, String fb) {
         List<String> lines = readFile(fp);

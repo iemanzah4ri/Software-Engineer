@@ -22,7 +22,6 @@ public class ViewInternship extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Updated columns
         String[] cols = {"RegNo", "Company", "Location", "Job Title", "Job Description"};
         tableModel = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) { return false; }
@@ -47,7 +46,6 @@ public class ViewInternship extends JFrame {
         tableModel.setRowCount(0);
         List<String[]> listings = DBHelper.getAllListings();
         for (String[] l : listings) {
-            // Check status at index 5 (new format)
             if (l.length >= 6 && l[5].equalsIgnoreCase("Approved")) {
                 tableModel.addRow(new Object[]{l[0], l[1], l[2], l[3], l[4]});
             }
