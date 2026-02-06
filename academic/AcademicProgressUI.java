@@ -1,7 +1,6 @@
-//detailed dashboard of student internship status
-//displays progress bars for hours and evaluation
 package academic;
-import common.*;
+import common.DatabaseHelper;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -28,6 +27,7 @@ public class AcademicProgressUI extends JFrame {
     }
 
     private void initComponents() {
+        //setup window
         setTitle("Student Internship Progress");
         setSize(850, 800);
         setLocationRelativeTo(null);
@@ -35,6 +35,7 @@ public class AcademicProgressUI extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
 
+        //header section
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(Color.WHITE);
         headerPanel.setBorder(new EmptyBorder(20, 0, 10, 0));
@@ -62,6 +63,7 @@ public class AcademicProgressUI extends JFrame {
         
         add(headerPanel, BorderLayout.NORTH);
 
+        //scrollable content area
         contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(Color.WHITE);
@@ -72,10 +74,13 @@ public class AcademicProgressUI extends JFrame {
         mainScroll.getVerticalScrollBar().setUnitIncrement(16);
         add(mainScroll, BorderLayout.CENTER);
 
+        //hours section
         JLabel lblHoursTitle = new JLabel("Internship Hours Completed (Goal: 400h)");
         JPanel pnlHours = createSectionPanel(lblHoursTitle, new Color(255, 250, 240)); 
+        
         barHours = createProgressBar();
-        barHours.setForeground(new Color(255, 140, 0)); 
+        barHours.setForeground(new Color(255, 140, 0)); //default orange
+        
         lblHoursText = createScoreLabel();
         
         pnlHours.add(barHours);
@@ -84,6 +89,7 @@ public class AcademicProgressUI extends JFrame {
         contentPanel.add(pnlHours);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        //comp evaluation section
         lblCompTitle = new JLabel("Company Supervisor Evaluation"); 
         JPanel pnlCompany = createSectionPanel(lblCompTitle, new Color(235, 245, 255));
         barComp = createProgressBar();
@@ -94,6 +100,7 @@ public class AcademicProgressUI extends JFrame {
         contentPanel.add(pnlCompany);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        //acad evaluation section
         JLabel lblAcadTitle = new JLabel("Academic Supervisor Evaluation");
         JPanel pnlAcad = createSectionPanel(lblAcadTitle, new Color(240, 255, 235));
         barAcad = createProgressBar();
@@ -104,6 +111,7 @@ public class AcademicProgressUI extends JFrame {
         contentPanel.add(pnlAcad);
         contentPanel.add(Box.createVerticalStrut(20));
 
+        //all score section
         JLabel lblTotalTitle = new JLabel("Overall Performance Score");
         JPanel pnlTotal = createSectionPanel(lblTotalTitle, new Color(250, 250, 250));
         barTotal = createProgressBar();
@@ -115,6 +123,7 @@ public class AcademicProgressUI extends JFrame {
         pnlTotal.add(lblFinalScore);
         contentPanel.add(pnlTotal);
 
+        //footer
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER));
         footer.setBackground(Color.WHITE);
         footer.setBorder(new EmptyBorder(10, 0, 20, 0));
@@ -199,7 +208,7 @@ public class AcademicProgressUI extends JFrame {
         studentBox.removeAllItems();
         studentIds.clear();
 
-        List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId); // UPDATED
+        List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId);
         
         if (matches.isEmpty()) {
             studentBox.addItem("No Assigned Students Found");
@@ -223,23 +232,34 @@ public class AcademicProgressUI extends JFrame {
 
         String studentId = studentIds.get(index);
         
-        double totalHours = DatabaseHelper.getTotalVerifiedHours(studentId); // UPDATED
+        // --- HOURS LOGIC FIXED HERE ---
+        double totalHours = DatabaseHelper.getTotalVerifiedHours(studentId);
         int targetHours = 400;
         int hoursPercent = (int) ((totalHours / targetHours) * 100);
         if (hoursPercent > 100) hoursPercent = 100;
 
         barHours.setValue(hoursPercent);
         barHours.setString((int)totalHours + " / " + targetHours + " Hours (" + hoursPercent + "%)");
-        lblHoursText.setText("Status: " + (totalHours >= 400 ? "Completed" : "In Progress"));
-        lblHoursText.setForeground(totalHours >= 400 ? new Color(34, 139, 34) : Color.DARK_GRAY);
+        
+        //change bar color to green if done, orange if not
+        if (totalHours >= 400) {
+            barHours.setForeground(new Color(34, 139, 34)); //green
+            lblHoursText.setText("Status: Completed");
+            lblHoursText.setForeground(new Color(34, 139, 34));
+        } else {
+            barHours.setForeground(new Color(255, 140, 0)); //orange
+            lblHoursText.setText("Status: In Progress");
+            lblHoursText.setForeground(Color.DARK_GRAY);
+        }
 
+        // --- REST OF THE LOGIC ---
         String compSvName = "Unknown";
-        List<String[]> allMatches = DatabaseHelper.getAllMatches(); // UPDATED
+        List<String[]> allMatches = DatabaseHelper.getAllMatches();
         for(String[] m : allMatches) {
             if(m[1].equals(studentId)) {
                 String compSvId = m[8]; 
                 if(!compSvId.equals("N/A")) {
-                    String[] u = DatabaseHelper.getUserById(compSvId); // UPDATED
+                    String[] u = DatabaseHelper.getUserById(compSvId);
                     if(u != null) compSvName = u[3]; 
                 } else {
                     compSvName = m[4] + " (Legacy)";
@@ -250,7 +270,7 @@ public class AcademicProgressUI extends JFrame {
         
         lblCompTitle.setText("Company Supervisor Evaluation (By: " + compSvName + ")");
 
-        String[] feedback = DatabaseHelper.getStudentFeedback(studentId); // UPDATED
+        String[] feedback = DatabaseHelper.getStudentFeedback(studentId);
 
         int cScore = 0, aScore = 0;
         boolean cExists = false, aExists = false;

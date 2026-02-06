@@ -1,7 +1,6 @@
-//interface to modify company supervisor details
-//allows updating company name and position
 package admin;
-import common.*;
+import common.*; 
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -16,6 +15,7 @@ public class AdminEditCompanyUI extends JFrame {
     private String currentId;
 
     public AdminEditCompanyUI() {
+        //setup the window
         setTitle("Edit Company Supervisor Details");
         setSize(800, 550);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -28,6 +28,7 @@ public class AdminEditCompanyUI extends JFrame {
 
         JSplitPane splitPane = new JSplitPane();
 
+        //left side for searching
         JPanel leftPanel = new JPanel(new BorderLayout());
         JPanel searchPanel = new JPanel();
         searchField = new JTextField(10);
@@ -37,6 +38,7 @@ public class AdminEditCompanyUI extends JFrame {
         searchPanel.add(searchField);
         searchPanel.add(searchBtn);
 
+        //table setup
         String[] columns = {"ID", "Username", "Name", "Company"};
         tableModel = new DefaultTableModel(columns, 0) {
              @Override
@@ -46,6 +48,7 @@ public class AdminEditCompanyUI extends JFrame {
         };
         supervisorTable = new JTable(tableModel);
 
+        //click listener to fill the form
         supervisorTable.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int row = supervisorTable.getSelectedRow();
@@ -59,6 +62,7 @@ public class AdminEditCompanyUI extends JFrame {
         leftPanel.add(searchPanel, BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
 
+        //right side form
         JPanel rightPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -82,6 +86,7 @@ public class AdminEditCompanyUI extends JFrame {
         gbc.gridx = 0; gbc.gridy = 5; rightPanel.add(new JLabel("Email:"), gbc);
         gbc.gridx = 1; emailField = new JTextField(15); rightPanel.add(emailField, gbc);
 
+        //save button
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
         JButton modifyBtn = new JButton("Modify");
         modifyBtn.setBackground(new Color(220, 220, 220));
@@ -105,15 +110,17 @@ public class AdminEditCompanyUI extends JFrame {
     }
 
     private void loadSupervisors(String query) {
+        //clear table and reload
         tableModel.setRowCount(0);
-        List<String[]> users = DatabaseHelper.getUsersByRole("Company Supervisor", query); // UPDATED
+        List<String[]> users = DatabaseHelper.getUsersByRole("Company Supervisor", query);
         for (String[] user : users) {
             tableModel.addRow(new Object[]{user[0], user[1], user[2], user[3]});
         }
     }
 
     private void loadSupervisorDetails(String id) {
-        String[] details = DatabaseHelper.getUserById(id); // UPDATED
+        //get details from db
+        String[] details = DatabaseHelper.getUserById(id);
         if (details != null) {
             currentId = details[0];
             userField.setText(details[1]);
@@ -126,16 +133,26 @@ public class AdminEditCompanyUI extends JFrame {
     }
 
     private void updateSupervisor() {
-        if (currentId == null) return;
+        if (currentId == null) {
+            JOptionPane.showMessageDialog(this, "Please select a supervisor first.");
+            return;
+        }
         
-        String newUser = userField.getText();
-        String newPass = passField.getText();
-        String newName = nameField.getText();
-        String newComp = companyField.getText();
-        String newPos = positionField.getText();
-        String newEmail = emailField.getText();
+        //check if fields are empty
+        String newUser = userField.getText().trim();
+        String newPass = passField.getText().trim();
+        String newName = nameField.getText().trim();
+        String newComp = companyField.getText().trim();
+        String newPos = positionField.getText().trim();
+        String newEmail = emailField.getText().trim();
 
-        DatabaseHelper.updateCompanySupervisor(currentId, newUser, newPass, newName, newPos, newComp, newEmail); // UPDATED
+        if (newUser.isEmpty() || newPass.isEmpty() || newName.isEmpty() || newComp.isEmpty() || newPos.isEmpty() || newEmail.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "All fields must be filled out!", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        //save to file
+        DatabaseHelper.updateCompanySupervisor(currentId, newUser, newPass, newName, newPos, newComp, newEmail);
         
         JOptionPane.showMessageDialog(this, "Updated Successfully!");
         loadSupervisors(""); 

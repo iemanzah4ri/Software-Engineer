@@ -1,7 +1,6 @@
-//interface for recording daily internship activities
-//saves hours and description to database
 package student;
-import common.*;
+import common.DatabaseHelper;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -22,6 +21,7 @@ public class StudentLogbookUI extends JFrame {
     }
 
     private void initComponents() {
+        //basic window setup
         setTitle("Daily Logbook");
         setSize(850, 600);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -30,35 +30,42 @@ public class StudentLogbookUI extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
+        //top section for new entry
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBorder(BorderFactory.createTitledBorder("New Log Entry"));
 
+        //grid layout for the form
         JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10)); 
         formPanel.setBorder(new EmptyBorder(10, 10, 5, 10)); 
 
         formPanel.add(new JLabel("Activity Description:"));
         txtActivity = new JTextField();
+        formPanel.add(txtActivity); // 
         
         formPanel.add(new JLabel("Hours Spent:"));
         txtHours = new JTextField();
-
+        formPanel.add(txtHours); 
+        
         topPanel.add(formPanel, BorderLayout.CENTER);
 
+        //buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnSave = new JButton("Save Log Entry");
-        btnSave.setBackground(new Color(100, 200, 100));
-        btnSave.addActionListener(e -> saveLog());
         
         JButton btnBack = new JButton("Back");
         btnBack.addActionListener(e -> dispose());
-
-        btnPanel.add(btnSave);
+        
+        JButton btnSubmit = new JButton("Submit Entry");
+        btnSubmit.setBackground(new Color(100, 200, 100)); //green button
+        btnSubmit.addActionListener(e -> saveLog());
+        
+        btnPanel.add(btnSubmit);
         btnPanel.add(btnBack);
         
         topPanel.add(btnPanel, BorderLayout.SOUTH);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
+        //history table
         String[] cols = {"Date", "Activity", "Hours", "Status"};
         tableModel = new DefaultTableModel(cols, 0);
         tblLogs = new JTable(tableModel);
@@ -74,14 +81,16 @@ public class StudentLogbookUI extends JFrame {
     }
 
     private void loadLogs() {
+        //clear and reload list
         tableModel.setRowCount(0);
-        List<String[]> logs = DatabaseHelper.getLogbooksByStudent(studentId); // UPDATED
+        List<String[]> logs = DatabaseHelper.getLogbooksByStudent(studentId);
         for (String[] l : logs) {
             tableModel.addRow(new Object[]{l[2], l[3], l[4], l[5]});
         }
     }
 
     private void saveLog() {
+        //get input
         String activity = txtActivity.getText();
         String hours = txtHours.getText();
         String date = LocalDate.now().toString();
@@ -91,9 +100,12 @@ public class StudentLogbookUI extends JFrame {
             return;
         }
 
-        DatabaseHelper.saveLogbookEntry(studentId, date, activity, hours); // UPDATED
+        //save to db
+        DatabaseHelper.saveLogbookEntry(studentId, date, activity, hours);
         JOptionPane.showMessageDialog(this, "Log Saved!");
         loadLogs();
+        
+        //clear inputs
         txtActivity.setText("");
         txtHours.setText("");
     }

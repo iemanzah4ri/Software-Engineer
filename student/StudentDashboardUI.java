@@ -1,7 +1,6 @@
-//main dashboard for student users
-//checks profile completion status on login
 package student;
 import common.*;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -14,6 +13,7 @@ public class StudentDashboardUI extends JFrame {
     public StudentDashboardUI(String id, String name) {
         this.studentId = id;
         this.studentName = name;
+        //check if profile is done before starting
         this.profileComplete = checkProfileStatus();
         
         if (profileComplete) {
@@ -30,6 +30,7 @@ public class StudentDashboardUI extends JFrame {
 
     @Override
     public void setVisible(boolean b) {
+        //dont show window if profile incomplete
         if (b && !profileComplete) {
             return;
         }
@@ -37,6 +38,7 @@ public class StudentDashboardUI extends JFrame {
     }
     
     private void checkNotifications() {
+        //see if there are new msgs
         if (NotificationHelper.hasUnreadNotifications(studentId)) {
             SwingUtilities.invokeLater(() -> {
                 int unreadCount = countUnreadNotifications();
@@ -50,6 +52,7 @@ public class StudentDashboardUI extends JFrame {
 
     private int countUnreadNotifications() {
         int count = 0;
+        //count how many are unread
         for (String[] notif : NotificationHelper.getNotifications(studentId)) {
             if (notif.length >= 5 && notif[4].equalsIgnoreCase("Unread")) {
                 count++;
@@ -59,62 +62,80 @@ public class StudentDashboardUI extends JFrame {
     }
 
     private void initComponents() {
+        //basic window setup
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setTitle("Student Dashboard - " + studentName);
         setLayout(new BorderLayout());
 
+        //header part
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
         JLabel lblWelcome = new JLabel("Welcome, " + studentName);
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);
         add(header, BorderLayout.NORTH);
 
+        //buttons grid
         JPanel buttons = new JPanel(new GridLayout(4, 2, 15, 15));
         buttons.setBorder(BorderFactory.createEmptyBorder(30, 100, 30, 100));
 
         JButton btnUpdateProfile = new JButton("Update Profile / Upload Resume");
-        btnUpdateProfile.addActionListener(e -> new StudentProfileUI(studentId, studentName, false).setVisible(true)); // RENAMED
+        btnUpdateProfile.addActionListener(e -> new StudentProfileUI(studentId, studentName, false).setVisible(true));
 
         JButton btnViewListings = new JButton("View & Apply for Internships");
-        btnViewListings.addActionListener(e -> new StudentJobBoardUI(studentId).setVisible(true)); // RENAMED
+        btnViewListings.addActionListener(e -> new StudentJobBoardUI(studentId).setVisible(true));
         
+        //logbook button
         JButton btnSubmitLog = new JButton("Daily Logbook");
         btnSubmitLog.addActionListener(e -> {
-            if (isInterning()) {
-                new StudentLogbookUI(studentId, studentName).setVisible(true); // RENAMED
+            //check if working and date started
+            if (isActiveIntern()) {
+                if (DatabaseHelper.isInternshipStarted(studentId)) {
+                    new StudentLogbookUI(studentId, studentName).setVisible(true); 
+                } else {
+                    JOptionPane.showMessageDialog(this, "Your internship has not started yet.\nPlease wait for your Start Date.", "Too Early", JOptionPane.WARNING_MESSAGE);
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "You must be placed in an internship to access this.", "Access Denied", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Access Restricted:\nOnly 'Placed' (Active) interns can add log entries.", "Access Denied", JOptionPane.WARNING_MESSAGE);
             }
         });
 
+        //attendance button
         JButton btnAttendance = new JButton("Attendance (Clock In/Out)");
         btnAttendance.addActionListener(e -> {
-            if (isInterning()) {
-                new StudentAttendanceUI(studentId, studentName).setVisible(true); // RENAMED
+            //check permissions again
+            if (isActiveIntern()) {
+                if (DatabaseHelper.isInternshipStarted(studentId)) {
+                    new StudentAttendanceUI(studentId, studentName).setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Your internship has not started yet.\nYou cannot clock in before your Start Date.", "Too Early", JOptionPane.WARNING_MESSAGE);
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "You must be placed in an internship to access this.", "Access Denied", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Access Restricted:\nOnly 'Placed' (Active) interns can clock in.", "Access Denied", JOptionPane.WARNING_MESSAGE);
             }
         });
 
         JButton btnTrack = new JButton("Track Application Status");
-        btnTrack.addActionListener(e -> new StudentTrackerUI(studentId, studentName).setVisible(true)); // RENAMED
+        btnTrack.addActionListener(e -> new StudentTrackerUI(studentId, studentName).setVisible(true));
 
+        //progress button
         JButton btnProgress = new JButton("View Internship Progress and Feedback");
         btnProgress.addActionListener(e -> {
-            if (isInterning()) {
-                new StudentProgressUI(studentId, studentName).setVisible(true); // RENAMED
+            //completed students can see this too
+            if (canViewProgress()) {
+                new StudentProgressUI(studentId, studentName).setVisible(true);
             } else {
-                JOptionPane.showMessageDialog(this, "You must be placed in an internship to access this.", "Access Denied", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "You have not started an internship yet.", "Access Denied", JOptionPane.WARNING_MESSAGE);
             }
         });
         
         JButton btnNotif = new JButton("View Notifications");
         btnNotif.addActionListener(e -> new NotificationViewUI(studentId).setVisible(true));
         
+        //logout logic
         JButton btnLogout = new JButton("Logout");
         btnLogout.addActionListener(e -> {
             this.dispose();
-            new LoginUI().setVisible(true); // RENAMED
+            new LoginUI().setVisible(true);
         });
         
         buttons.add(btnUpdateProfile);
@@ -130,21 +151,37 @@ public class StudentDashboardUI extends JFrame {
     }
     
     private boolean checkProfileStatus() {
-        String[] data = DatabaseHelper.getUserById(studentId); // UPDATED
+        String[] data = DatabaseHelper.getUserById(studentId);
         if (data == null) return false;
         
-        boolean hasResume = DatabaseHelper.getResumeFile(studentId) != null; // UPDATED
+        //make sure they uploaded resume
+        boolean hasResume = DatabaseHelper.getResumeFile(studentId) != null;
         
         if (!hasResume) {
             JOptionPane.showMessageDialog(null, "Welcome! Please complete your profile and upload a resume to continue.");
-            new StudentProfileUI(studentId, studentName, true).setVisible(true); // RENAMED
+            new StudentProfileUI(studentId, studentName, true).setVisible(true);
             return false; 
         }
         return true;
     }
 
-    private boolean isInterning() {
-        String[] data = DatabaseHelper.getUserById(studentId); // UPDATED
-        return data != null && data.length > 9 && "Placed".equalsIgnoreCase(data[9]);
+    //helper stuff
+
+    //strict check: only active interns
+    private boolean isActiveIntern() {
+        String[] data = DatabaseHelper.getUserById(studentId);
+        if (data == null || data.length <= 9) return false;
+        
+        String status = data[9];
+        return "Placed".equalsIgnoreCase(status);
+    }
+
+    //lenient check: active or completed
+    private boolean canViewProgress() {
+        String[] data = DatabaseHelper.getUserById(studentId);
+        if (data == null || data.length <= 9) return false;
+        
+        String status = data[9];
+        return "Placed".equalsIgnoreCase(status) || "Completed".equalsIgnoreCase(status);
     }
 }

@@ -622,4 +622,31 @@ public class DatabaseHelper {
         }
         writeFile(fp, ln);
     }
+
+    public static boolean isInternshipStarted(String studentId) {
+        List<String> matches = readFile("matches.txt");
+        java.time.LocalDate today = java.time.LocalDate.now();
+        
+        for (String line : matches) {
+            String[] data = line.split(",");
+            // Match format: MatchID, StudentID, Name, Reg, Comp, Job, STARTDATE, ...
+            if (data.length > 6 && data[1].equals(studentId)) {
+                String dateStr = data[6]; // The start date
+                try {
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(dateStr);
+                    
+                    // If today is BEFORE start date, return false (Locked)
+                    if (today.isBefore(startDate)) {
+                        return false;
+                    }
+                    return true; // Date is reached or passed (Unlocked)
+                    
+                } catch (Exception e) {
+                    System.out.println("Date parse error for student " + studentId);
+                    return true; // If date error, default to Allow to prevent lockout
+                }
+            }
+        }
+        return false; // No match found
+    }
 }

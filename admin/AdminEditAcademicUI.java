@@ -1,7 +1,6 @@
-//interface to update academic supervisor credentials
-//allows modification of username and password
 package admin;
 import common.*;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -16,6 +15,7 @@ public class AdminEditAcademicUI extends JFrame {
     private String currentId; 
 
     public AdminEditAcademicUI() {
+        //setup basic window stuff
         setTitle("Edit Academic Supervisor Details");
         setSize(700, 500);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -25,7 +25,6 @@ public class AdminEditAcademicUI extends JFrame {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
 
-
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton backBtn = new JButton("Back Home");
         backBtn.addActionListener(e -> dispose());
@@ -34,6 +33,7 @@ public class AdminEditAcademicUI extends JFrame {
         
         JSplitPane splitPane = new JSplitPane();
         
+        //left panel for list
         JPanel leftPanel = new JPanel(new BorderLayout());
         JPanel searchPanel = new JPanel();
         searchField = new JTextField(10);
@@ -49,6 +49,7 @@ public class AdminEditAcademicUI extends JFrame {
         };
         supervisorTable = new JTable(tableModel);
         
+        //load details when clicked
         supervisorTable.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int row = supervisorTable.getSelectedRow();
@@ -61,6 +62,7 @@ public class AdminEditAcademicUI extends JFrame {
         leftPanel.add(searchPanel, BorderLayout.NORTH);
         leftPanel.add(new JScrollPane(supervisorTable), BorderLayout.CENTER);
 
+        //right panel for editing
         JPanel rightPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -90,15 +92,17 @@ public class AdminEditAcademicUI extends JFrame {
     }
 
     private void loadSupervisors(String query) {
+        //refresh the list
         tableModel.setRowCount(0);
-        List<String[]> users = DatabaseHelper.getUsersByRole("Academic Supervisor", query); // UPDATED
+        List<String[]> users = DatabaseHelper.getUsersByRole("Academic Supervisor", query);
         for (String[] user : users) {
             tableModel.addRow(new Object[]{user[0], user[1], user[2]});
         }
     }
 
     private void loadSupervisorDetails(String id) {
-        String[] details = DatabaseHelper.getUserById(id); // UPDATED
+        //fill text fields
+        String[] details = DatabaseHelper.getUserById(id);
         if (details != null) {
             currentId = details[0];
             userField.setText(details[1]);
@@ -112,7 +116,19 @@ public class AdminEditAcademicUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Please select a supervisor first.");
             return;
         }
-        DatabaseHelper.updateAcademicSupervisor(currentId, userField.getText(), passField.getText(), nameField.getText()); // UPDATED
+
+        //validate inputs
+        String newUser = userField.getText().trim();
+        String newPass = passField.getText().trim();
+        String newName = nameField.getText().trim();
+
+        if (newUser.isEmpty() || newPass.isEmpty() || newName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "All fields must be filled out!", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        //update db
+        DatabaseHelper.updateAcademicSupervisor(currentId, newUser, newPass, newName);
         JOptionPane.showMessageDialog(this, "Updated Successfully!");
         loadSupervisors("");
     }
