@@ -1,17 +1,19 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
 import java.nio.file.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 public class CompanyManageApplicationsUI extends JFrame {
     private String companyName;
-    private String supervisorId;
     private JTable appTable;
     private DefaultTableModel appModel;
 
     public CompanyManageApplicationsUI(String supervisorId, String companyName) {
-        this.supervisorId = supervisorId;
         this.companyName = (companyName == null) ? "" : companyName.trim();
         initComponents();
         loadApplications();
@@ -28,7 +30,7 @@ public class CompanyManageApplicationsUI extends JFrame {
         title.setFont(new Font("Arial", Font.BOLD, 22));
         add(title, BorderLayout.NORTH);
 
-        String[] cols = {"App ID", "Student ID", "Student Name", "Listing RegNo", "Status"};
+        String[] cols = {"App ID", "Student ID", "Student Name", "Job Title", "Listing ID", "Status"};
         appModel = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c) { return false; } };
         appTable = new JTable(appModel);
         add(new JScrollPane(appTable), BorderLayout.CENTER);
@@ -36,11 +38,10 @@ public class CompanyManageApplicationsUI extends JFrame {
         JPanel p = new JPanel();
         JButton btnViewResume = new JButton("View Resume");
         JButton btnDownloadResume = new JButton("Download Resume");
-        JButton btnApprove = new JButton("Approve");
+        JButton btnOffer = new JButton("Send Offer");
         JButton btnReject = new JButton("Reject");
         JButton btnBack = new JButton("Back");
 
-        // --- VIEW RESUME ACTION ---
         btnViewResume.addActionListener(e -> {
             int r = appTable.getSelectedRow();
             if (r == -1) { JOptionPane.showMessageDialog(this, "Select a student."); return; }
@@ -59,7 +60,6 @@ public class CompanyManageApplicationsUI extends JFrame {
             }
         });
 
-        // --- DOWNLOAD RESUME ACTION ---
         btnDownloadResume.addActionListener(e -> {
             int r = appTable.getSelectedRow();
             if (r == -1) { JOptionPane.showMessageDialog(this, "Select a student."); return; }
@@ -85,15 +85,40 @@ public class CompanyManageApplicationsUI extends JFrame {
             }
         });
 
-        btnApprove.addActionListener(e -> {
+        btnOffer.addActionListener(e -> {
             int r = appTable.getSelectedRow();
             if(r==-1) { JOptionPane.showMessageDialog(this, "Select an application."); return; }
             
-            String appId = appModel.getValueAt(r, 0).toString();
-            DBHelper.approveApplication(appId, supervisorId);
-            
-            JOptionPane.showMessageDialog(this, "Approved and Student Placed!");
-            loadApplications();
+            JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
+            JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd");
+            dateSpinner.setEditor(timeEditor);
+            dateSpinner.setValue(new Date()); 
+
+            int option = JOptionPane.showOptionDialog(this, new Object[]{"Set Internship Start Date:", dateSpinner}, 
+                "Prepare Offer", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
+
+            if (option == JOptionPane.OK_OPTION) {
+                JFileChooser pdfChooser = new JFileChooser();
+                pdfChooser.setDialogTitle("Select Contract PDF to Send");
+                pdfChooser.setAcceptAllFileFilterUsed(false);
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("PDF Documents", "pdf");
+                pdfChooser.addChoosableFileFilter(filter);
+
+                if (pdfChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    File contractFile = pdfChooser.getSelectedFile();
+                    
+                    Date selectedDate = (Date) dateSpinner.getValue();
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    String startDateStr = sdf.format(selectedDate);
+                    
+                    String appId = appModel.getValueAt(r, 0).toString();
+                    
+                    DBHelper.sendOffer(appId, startDateStr, contractFile);
+                    
+                    JOptionPane.showMessageDialog(this, "Offer Sent! Status updated to 'Offered'.");
+                    loadApplications();
+                }
+            }
         });
 
         btnReject.addActionListener(e -> {
@@ -109,7 +134,7 @@ public class CompanyManageApplicationsUI extends JFrame {
         p.add(btnViewResume);
         p.add(btnDownloadResume);
         p.add(btnReject); 
-        p.add(btnApprove);
+        p.add(btnOffer);
         
         add(p, BorderLayout.SOUTH);
     }
@@ -118,13 +143,25 @@ public class CompanyManageApplicationsUI extends JFrame {
         appModel.setRowCount(0);
         File file = new File("database/applications.txt");
         if (!file.exists()) return;
+        
+        List<String[]> listings = DBHelper.getAllListings();
+        
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
                 if (data.length >= 5 && data[3].equalsIgnoreCase(companyName) && data[4].equalsIgnoreCase("Pending")) {
                     String[] student = DBHelper.getUserById(data[1]);
-                    appModel.addRow(new Object[]{data[0], data[1], (student!=null?student[3]:"Unknown"), data[2], data[4]});
+                    
+                    String jobTitle = "Unknown Position";
+                    for(String[] lst : listings) {
+                        if(lst[0].equals(data[2])) {
+                            jobTitle = lst[4];
+                            break;
+                        }
+                    }
+                    
+                    appModel.addRow(new Object[]{data[0], data[1], (student!=null?student[3]:"Unknown"), jobTitle, data[2], data[4]});
                 }
             }
         } catch (Exception e) {}

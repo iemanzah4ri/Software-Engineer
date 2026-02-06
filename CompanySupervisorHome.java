@@ -34,18 +34,16 @@ public class CompanySupervisorHome extends JFrame {
 
         JButton btnManage = new JButton("Manage Applications");
         JButton btnEval = new JButton("Submit Evaluation");
-        JButton btnVer = new JButton("Verify Logbook");
-        JButton btnViewS = new JButton("View Student Profile");
-        JButton btnView = new JButton("View Assigned Students");
+        JButton btnVer = new JButton("Verify Logbook and Attendance");
+        JButton btnViewS = new JButton("View Assigned Student Profile");
         JButton btnCreate = new JButton("Post Listing");
         JButton btnOut = new JButton("Logout");
 
         // Pass ID here
         btnManage.addActionListener(e -> new CompanyManageApplicationsUI(supervisorId, companyName).setVisible(true));
         btnEval.addActionListener(e -> new CompanyEvaluation(supervisorId).setVisible(true));
-        btnVer.addActionListener(e -> new VerifyLogbookUI(supervisorId).setVisible(true));
+        btnVer.addActionListener(e -> new VerifyLogbookAttd(supervisorId).setVisible(true));
         btnViewS.addActionListener(e -> new ViewStudentProfileUI(supervisorId).setVisible(true));
-        btnView.addActionListener(e -> new ViewAssignedStudentsUI(supervisorId).setVisible(true));
         btnCreate.addActionListener(e -> new CreateListingUI("Company Supervisor", companyName).setVisible(true));
         btnOut.addActionListener(e -> { dispose(); new LoginForm().setVisible(true); });
 
@@ -53,7 +51,6 @@ public class CompanySupervisorHome extends JFrame {
         btnPanel.add(btnEval);
         btnPanel.add(btnVer);
         btnPanel.add(btnViewS);
-        btnPanel.add(btnView);
         btnPanel.add(btnCreate);
         btnPanel.add(btnOut);
         add(btnPanel, BorderLayout.CENTER);

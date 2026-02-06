@@ -29,13 +29,18 @@ public class StudentViewListingsUI extends JFrame {
         title.setBorder(BorderFactory.createEmptyBorder(15,0,15,0));
         add(title, BorderLayout.NORTH);
 
-        String[] cols = {"Reg No", "Company", "Location", "Job Title", "Job Description"};
+        String[] cols = {"ListingID", "Reg No", "Company", "Location", "Job Title", "Job Description"};
         model = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         table = new JTable(model);
         table.setRowHeight(25);
-        table.getColumnModel().getColumn(4).setPreferredWidth(300);
+        
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
+        
+        table.getColumnModel().getColumn(5).setPreferredWidth(300);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         JPanel footer = new JPanel();
@@ -64,22 +69,23 @@ public class StudentViewListingsUI extends JFrame {
         List<String[]> list = DBHelper.getAllListings();
         
         for (String[] row : list) {
-            if (row.length < 5) continue;
+            if (row.length < 7) continue;
 
-            String status = row[row.length - 1].trim();
+            String status = row[6].trim();
             
             if (status.equalsIgnoreCase("Approved")) {
-                String reg = row[0];
-                String comp = row[1];
-                String loc = row[2];
-                String title = row[3];
+                String listingId = row[0];
+                String reg = row[1];
+                String comp = row[2];
+                String loc = row[3];
+                String title = row[4];
 
-                StringBuilder desc = new StringBuilder(row[4]);
-                for (int i = 5; i < row.length - 1; i++) {
+                StringBuilder desc = new StringBuilder(row[5]);
+                for (int i = 6; i < row.length - 1; i++) {
                     desc.append(", ").append(row[i]);
                 }
 
-                model.addRow(new Object[]{reg, comp, loc, title, desc.toString()});
+                model.addRow(new Object[]{listingId, reg, comp, loc, title, desc.toString()});
             }
         }
     }
@@ -91,18 +97,19 @@ public class StudentViewListingsUI extends JFrame {
             return;
         }
 
-        String regNo = model.getValueAt(row, 0).toString();
-        String comp = model.getValueAt(row, 1).toString();
-        String loc = model.getValueAt(row, 2).toString();
-        String job = model.getValueAt(row, 3).toString();
-        String desc = model.getValueAt(row, 4).toString();
+        String listingId = model.getValueAt(row, 0).toString();
+        String regNo = model.getValueAt(row, 1).toString();
+        String comp = model.getValueAt(row, 2).toString();
+        String loc = model.getValueAt(row, 3).toString();
+        String job = model.getValueAt(row, 4).toString();
+        String desc = model.getValueAt(row, 5).toString();
 
-        if (DBHelper.hasApplied(studentId, regNo)) {
-            JOptionPane.showMessageDialog(this, "You have already applied to this company!");
+        if (DBHelper.hasApplied(studentId, listingId)) {
+            JOptionPane.showMessageDialog(this, "You have already applied to this specific job!");
             return;
         }
 
-        new StudentApplyUI(studentId, regNo, comp, loc, job, desc).setVisible(true);
+        new StudentApplyUI(studentId, listingId, comp, loc, job, desc).setVisible(true);
         dispose();
     }
 

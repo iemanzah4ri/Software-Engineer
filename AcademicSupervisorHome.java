@@ -29,8 +29,8 @@ public class AcademicSupervisorHome extends JFrame {
         buttons.setBorder(BorderFactory.createEmptyBorder(20, 150, 20, 150));
 
         // b1
-        JButton b1 = new JButton("View Assigned Student"); // Placeholder from your original code? 
-        b1.addActionListener(e -> JOptionPane.showMessageDialog(this, "Use 'View Progress' or 'Submit Evaluation' to see student details."));
+        JButton b1 = new JButton("View Assigned Student Profile"); // Placeholder from your original code? 
+        b1.addActionListener(e -> new ViewStudentProfileUI(supervisorId).setVisible(true));
 
         // b2
         JButton b2 = new JButton("View Student Logbook");

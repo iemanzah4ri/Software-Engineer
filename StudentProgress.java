@@ -10,7 +10,7 @@ public class StudentProgress extends JFrame {
 
     private void initComponents(String studentId) {
         setTitle("Internship Progress & Feedback");
-        setSize(850, 700); 
+        setSize(850, 750); 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -39,9 +39,31 @@ public class StudentProgress extends JFrame {
         bar.setPreferredSize(new Dimension(0, 35));
 
         progressPanel.add(bar, BorderLayout.CENTER);
-        
         mainContent.add(progressPanel);
-        mainContent.add(Box.createRigidArea(new Dimension(0, 20))); 
+        mainContent.add(Box.createRigidArea(new Dimension(0, 15))); 
+
+        JPanel attPanel = new JPanel(new BorderLayout(5, 5));
+        attPanel.setBorder(BorderFactory.createTitledBorder("Attendance Record (Verified Days vs Workdays)"));
+        attPanel.setBackground(Color.WHITE);
+        attPanel.setMaximumSize(new Dimension(2000, 80));
+
+        int attPercent = DBHelper.calculateAttendancePercentage(studentId);
+        
+        JProgressBar barAtt = new JProgressBar(0, 100);
+        barAtt.setValue(attPercent);
+        barAtt.setStringPainted(true);
+        barAtt.setString(attPercent + "% Attendance Rate");
+        
+        if (attPercent >= 80) barAtt.setForeground(new Color(60, 179, 113)); 
+        else if (attPercent >= 50) barAtt.setForeground(new Color(255, 165, 0)); 
+        else barAtt.setForeground(new Color(220, 53, 69)); 
+        
+        barAtt.setFont(new Font("Arial", Font.BOLD, 14));
+        barAtt.setPreferredSize(new Dimension(0, 35));
+        
+        attPanel.add(barAtt, BorderLayout.CENTER);
+        mainContent.add(attPanel);
+        mainContent.add(Box.createRigidArea(new Dimension(0, 20)));
 
         String[] data = DBHelper.getStudentFeedback(studentId);
         

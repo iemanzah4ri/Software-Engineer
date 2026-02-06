@@ -1,214 +1,171 @@
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class ManageListingsUI extends JFrame {
 
-    private DefaultTableModel model;
     private JTable table;
-    
-    private JTextField txtRegNo, txtCompany, txtLocation, txtJobTitle;
-    private JTextArea txtJobDesc; // Changed to JTextArea
+    private DefaultTableModel model;
+    private JTextField txtReg, txtComp, txtLoc, txtJob, txtDesc;
 
     public ManageListingsUI() {
+        initComponents();
+        loadListings();
+    }
+
+    private void initComponents() {
         setTitle("Manage Company Account & Internship Listings");
-        setSize(1000, 700); // Increased height slightly for the text area
+        setSize(1000, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // --- TOP PANEL ---
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
-        topPanel.setBackground(Color.WHITE);
-        topPanel.setBorder(new EmptyBorder(20, 20, 10, 20));
-
-        JLabel lblTitle = new JLabel("Manage Company Account and Internship Listings");
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 22));
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel title = new JLabel("Manage Company Account & Internship Listings", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 22));
+        title.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        searchPanel.setBackground(Color.WHITE);
-        searchPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        searchPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-        
-        JTextField txtSearch = new JTextField(15);
-        JButton btnSearch = new JButton("Search");
-        btnSearch.setBackground(new Color(220, 220, 220));
-        
-        JButton btnRefresh = new JButton("Refresh");
         JButton btnCreate = new JButton("Create New");
+        btnCreate.addActionListener(e -> createNewListing());
         
-        searchPanel.add(txtSearch);
-        searchPanel.add(Box.createHorizontalStrut(10));
-        searchPanel.add(btnSearch);
-        searchPanel.add(Box.createHorizontalStrut(10));
-        searchPanel.add(btnRefresh);
-        searchPanel.add(Box.createHorizontalStrut(10));
-        searchPanel.add(btnCreate);
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(title, BorderLayout.CENTER);
+        
+        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        toolbar.add(new JTextField(20)); 
+        toolbar.add(new JButton("Search"));
+        toolbar.add(new JButton("Refresh"));
+        toolbar.add(btnCreate);
+        header.add(toolbar, BorderLayout.SOUTH);
 
-        topPanel.add(lblTitle);
-        topPanel.add(searchPanel);
-        add(topPanel, BorderLayout.NORTH);
+        add(header, BorderLayout.NORTH);
 
-        // --- TABLE ---
-        String[] cols = {"Reg No", "Company", "Location", "Job Title", "Job Desc", "Status"};
+        String[] cols = {"ID", "Reg No", "Company", "Location", "Job Title", "Job Desc", "Status"};
         model = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; 
-            }
+            public boolean isCellEditable(int row, int col) { return false; }
         };
         table = new JTable(model);
+        table.setRowHeight(25);
         
-        table.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
-                int row = table.getSelectedRow();
-                if (row != -1) {
-                    txtRegNo.setText(safeGet(row, 0));
-                    txtCompany.setText(safeGet(row, 1));
-                    txtLocation.setText(safeGet(row, 2));
-                    txtJobTitle.setText(safeGet(row, 3));
-                    txtJobDesc.setText(safeGet(row, 4)); // Sets text to the text area
-                    // Reset scroll position to top
-                    txtJobDesc.setCaretPosition(0);
-                }
+        table.getColumnModel().getColumn(0).setPreferredWidth(80);
+        table.getColumnModel().getColumn(5).setPreferredWidth(200); 
+        
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row != -1) {
+                txtReg.setText(model.getValueAt(row, 1).toString());
+                txtComp.setText(model.getValueAt(row, 2).toString());
+                txtLoc.setText(model.getValueAt(row, 3).toString());
+                txtJob.setText(model.getValueAt(row, 4).toString());
+                txtDesc.setText(model.getValueAt(row, 5).toString());
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(new EmptyBorder(0, 20, 0, 20));
-        add(scrollPane, BorderLayout.CENTER);
+        add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // --- BOTTOM FORM PANEL ---
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBackground(Color.WHITE);
-        bottomPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
+        
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        // Row 0: Reg No
-        gbc.gridx=0; gbc.gridy=0; formPanel.add(new JLabel("Registration Number"), gbc);
-        gbc.gridx=1; txtRegNo = new JTextField(15); txtRegNo.setEditable(false); formPanel.add(txtRegNo, gbc);
-
-        // Row 1: Company
-        gbc.gridx=0; gbc.gridy=1; formPanel.add(new JLabel("Company Name"), gbc);
-        gbc.gridx=1; txtCompany = new JTextField(15); txtCompany.setEditable(false); formPanel.add(txtCompany, gbc);
-
-        // Row 2: Location
-        gbc.gridx=0; gbc.gridy=2; formPanel.add(new JLabel("Location"), gbc);
-        gbc.gridx=1; txtLocation = new JTextField(15); txtLocation.setEditable(false); formPanel.add(txtLocation, gbc);
-
-        // Row 3: Job Title
-        gbc.gridx=0; gbc.gridy=3; formPanel.add(new JLabel("Job Title"), gbc);
-        gbc.gridx=1; txtJobTitle = new JTextField(15); txtJobTitle.setEditable(false); formPanel.add(txtJobTitle, gbc);
-
-        // Row 4: Job Description (UPDATED)
-        gbc.gridx=0; gbc.gridy=4; 
-        gbc.anchor = GridBagConstraints.NORTHWEST; // Align label to top
-        formPanel.add(new JLabel("Job Description"), gbc);
-
-        gbc.gridx=1; 
-        gbc.fill = GridBagConstraints.BOTH; // Fill space
-        gbc.weighty = 1.0; // Allow vertical growth
         
-        txtJobDesc = new JTextArea(4, 20); // 4 rows, 20 cols
-        txtJobDesc.setLineWrap(true);
-        txtJobDesc.setWrapStyleWord(true);
-        txtJobDesc.setEditable(false);
-        
-        JScrollPane descScroll = new JScrollPane(txtJobDesc);
-        formPanel.add(descScroll, gbc);
+        txtReg = new JTextField(15);
+        txtComp = new JTextField(15);
+        txtLoc = new JTextField(15);
+        txtJob = new JTextField(15);
+        txtDesc = new JTextField(15);
 
-        // Reset constraints for buttons
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weighty = 0;
-        gbc.anchor = GridBagConstraints.WEST;
+        addFormField(formPanel, gbc, 0, "Registration Number", txtReg);
+        addFormField(formPanel, gbc, 1, "Company Name", txtComp);
+        addFormField(formPanel, gbc, 2, "Location", txtLoc);
+        addFormField(formPanel, gbc, 3, "Job Title", txtJob);
+        addFormField(formPanel, gbc, 4, "Job Description", txtDesc);
 
-        // Row 5: Buttons
-        JPanel actionBtns = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        actionBtns.setBackground(Color.WHITE);
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         
         JButton btnApprove = new JButton("Approve Listing");
         btnApprove.setBackground(new Color(144, 238, 144)); 
+        btnApprove.addActionListener(e -> updateStatus("Approved"));
         
         JButton btnReject = new JButton("Reject");
-        btnReject.setBackground(new Color(255, 102, 102));
-
-        actionBtns.add(btnApprove);
-        actionBtns.add(btnReject);
-
-        gbc.gridx=1; gbc.gridy=5; 
-        formPanel.add(actionBtns, gbc);
-
-        // -- Right Side: Back Button --
-        JPanel rightBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        rightBtnPanel.setBackground(Color.WHITE);
+        btnReject.setBackground(new Color(255, 102, 102)); 
+        btnReject.addActionListener(e -> updateStatus("Rejected"));
+        
         JButton btnBack = new JButton("Back Home");
-        btnBack.setBackground(new Color(220, 220, 220));
-        rightBtnPanel.add(btnBack);
-
-        bottomPanel.add(formPanel, BorderLayout.CENTER); // Changed to CENTER to allow resizing
-        bottomPanel.add(rightBtnPanel, BorderLayout.SOUTH);
-        
-        add(bottomPanel, BorderLayout.SOUTH);
-
-        loadListings();
-
-        // --- ACTIONS ---
-        btnCreate.addActionListener(e -> new CreateListingUI("Admin").setVisible(true));
-        
-        btnRefresh.addActionListener(e -> loadListings());
-
-        btnApprove.addActionListener(e -> {
-            if(txtRegNo.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a listing first.");
-                return;
-            }
-            DBHelper.approveListing(txtRegNo.getText());
-            loadListings();
-            JOptionPane.showMessageDialog(this, "Listing Approved!");
-        });
-
-        btnReject.addActionListener(e -> {
-            if(txtRegNo.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a listing first.");
-                return;
-            }
-            DBHelper.rejectListing(txtRegNo.getText());
-            loadListings();
-            JOptionPane.showMessageDialog(this, "Listing Rejected.");
-        });
-
         btnBack.addActionListener(e -> {
             this.dispose();
             new AdminHome().setVisible(true);
         });
+
+        btnPanel.add(btnApprove);
+        btnPanel.add(btnReject);
+        btnPanel.add(btnBack);
+
+        bottomPanel.add(formPanel, BorderLayout.CENTER);
+        bottomPanel.add(btnPanel, BorderLayout.SOUTH);
+        
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private void addFormField(JPanel p, GridBagConstraints gbc, int row, String label, JTextField field) {
+        gbc.gridx = 0; gbc.gridy = row; p.add(new JLabel(label), gbc);
+        gbc.gridx = 1; p.add(field, gbc);
     }
 
     private void loadListings() {
         model.setRowCount(0);
         List<String[]> list = DBHelper.getAllListings();
-        for(String[] row : list) {
-            if (row.length >= 6) {
-                model.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], row[5]});
+        
+        for (String[] row : list) {
+            if (row.length >= 7) {
+                model.addRow(new Object[]{
+                    row[0], 
+                    row[1], 
+                    row[2], 
+                    row[3], 
+                    row[4], 
+                    row[5], 
+                    row[6]
+                });
             }
         }
     }
 
-    private String safeGet(int row, int col) {
-        if (table.getValueAt(row, col) != null) {
-            return table.getValueAt(row, col).toString();
+    private void updateStatus(String newStatus) {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a listing from the table.");
+            return;
         }
-        return "";
+
+        String listingId = model.getValueAt(row, 0).toString(); 
+        
+        if (newStatus.equals("Approved")) {
+            DBHelper.approveListing(listingId);
+        } else {
+            DBHelper.rejectListing(listingId);
+        }
+        
+        JOptionPane.showMessageDialog(this, "Listing marked as " + newStatus);
+        loadListings(); 
+    }
+
+    private void createNewListing() {
+        String reg = txtReg.getText();
+        String comp = txtComp.getText();
+        String loc = txtLoc.getText();
+        String job = txtJob.getText();
+        String desc = txtDesc.getText();
+
+        if(reg.isEmpty() || comp.isEmpty() || loc.isEmpty() || job.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all details before creating.");
+            return;
+        }
+
+        DBHelper.saveListing(reg, comp, loc, job, desc, "Pending");
+        JOptionPane.showMessageDialog(this, "New Listing Created!");
+        loadListings();
     }
 }

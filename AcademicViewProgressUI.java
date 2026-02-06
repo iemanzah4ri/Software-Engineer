@@ -10,9 +10,9 @@ public class AcademicViewProgressUI extends JFrame {
     private JComboBox<String> studentBox;
     private List<String> studentIds; 
     
-    private JLabel lblCompScore, lblAcadScore, lblFinalScore;
-    private JLabel lblCompTitle; // Promoted to field to update text dynamically
-    private JProgressBar barComp, barAcad, barTotal;
+    private JLabel lblCompScore, lblAcadScore, lblFinalScore, lblHoursText;
+    private JLabel lblCompTitle; 
+    private JProgressBar barComp, barAcad, barTotal, barHours;
     private JTextArea txtCompFeed, txtAcadFeed;
     private JPanel contentPanel;
 
@@ -25,13 +25,12 @@ public class AcademicViewProgressUI extends JFrame {
 
     private void initComponents() {
         setTitle("Student Internship Progress");
-        setSize(850, 750);
+        setSize(850, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
 
-        // --- Header Section ---
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(Color.WHITE);
         headerPanel.setBorder(new EmptyBorder(20, 0, 10, 0));
@@ -59,7 +58,6 @@ public class AcademicViewProgressUI extends JFrame {
         
         add(headerPanel, BorderLayout.NORTH);
 
-        // --- Main Content Area ---
         contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(Color.WHITE);
@@ -70,8 +68,19 @@ public class AcademicViewProgressUI extends JFrame {
         mainScroll.getVerticalScrollBar().setUnitIncrement(16);
         add(mainScroll, BorderLayout.CENTER);
 
-        // --- 1. Company Section (Blue Theme) ---
-        lblCompTitle = new JLabel("Company Supervisor Evaluation"); // Initialize Label
+        JLabel lblHoursTitle = new JLabel("Internship Hours Completed (Goal: 400h)");
+        JPanel pnlHours = createSectionPanel(lblHoursTitle, new Color(255, 250, 240)); 
+        barHours = createProgressBar();
+        barHours.setForeground(new Color(255, 140, 0)); 
+        lblHoursText = createScoreLabel();
+        
+        pnlHours.add(barHours);
+        pnlHours.add(Box.createVerticalStrut(5));
+        pnlHours.add(lblHoursText);
+        contentPanel.add(pnlHours);
+        contentPanel.add(Box.createVerticalStrut(20));
+
+        lblCompTitle = new JLabel("Company Supervisor Evaluation"); 
         JPanel pnlCompany = createSectionPanel(lblCompTitle, new Color(235, 245, 255));
         barComp = createProgressBar();
         lblCompScore = createScoreLabel();
@@ -81,7 +90,6 @@ public class AcademicViewProgressUI extends JFrame {
         contentPanel.add(pnlCompany);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // --- 2. Academic Section (Green Theme) ---
         JLabel lblAcadTitle = new JLabel("Academic Supervisor Evaluation");
         JPanel pnlAcad = createSectionPanel(lblAcadTitle, new Color(240, 255, 235));
         barAcad = createProgressBar();
@@ -92,11 +100,10 @@ public class AcademicViewProgressUI extends JFrame {
         contentPanel.add(pnlAcad);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // --- 3. Overall Section (Gray/Neutral) ---
-        JLabel lblTotalTitle = new JLabel("Overall Performance");
+        JLabel lblTotalTitle = new JLabel("Overall Performance Score");
         JPanel pnlTotal = createSectionPanel(lblTotalTitle, new Color(250, 250, 250));
         barTotal = createProgressBar();
-        barTotal.setForeground(new Color(34, 139, 34)); // Forest Green
+        barTotal.setForeground(new Color(34, 139, 34)); 
         lblFinalScore = createScoreLabel();
         
         pnlTotal.add(barTotal);
@@ -104,7 +111,6 @@ public class AcademicViewProgressUI extends JFrame {
         pnlTotal.add(lblFinalScore);
         contentPanel.add(pnlTotal);
 
-        // --- Footer ---
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER));
         footer.setBackground(Color.WHITE);
         footer.setBorder(new EmptyBorder(10, 0, 20, 0));
@@ -120,9 +126,6 @@ public class AcademicViewProgressUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
     }
 
-    // --- Clean UI Helpers ---
-
-    // Updated to accept JLabel instead of String so we can reference it
     private JPanel createSectionPanel(JLabel labelObj, Color bg) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
@@ -188,8 +191,6 @@ public class AcademicViewProgressUI extends JFrame {
         return txt;
     }
 
-    // --- Data Logic ---
-
     private void loadStudents() {
         studentBox.removeAllItems();
         studentIds.clear();
@@ -218,28 +219,33 @@ public class AcademicViewProgressUI extends JFrame {
 
         String studentId = studentIds.get(index);
         
-        // 1. Find Company Supervisor Name
+        double totalHours = DBHelper.getTotalVerifiedHours(studentId);
+        int targetHours = 400;
+        int hoursPercent = (int) ((totalHours / targetHours) * 100);
+        if (hoursPercent > 100) hoursPercent = 100;
+
+        barHours.setValue(hoursPercent);
+        barHours.setString((int)totalHours + " / " + targetHours + " Hours (" + hoursPercent + "%)");
+        lblHoursText.setText("Status: " + (totalHours >= 400 ? "Completed" : "In Progress"));
+        lblHoursText.setForeground(totalHours >= 400 ? new Color(34, 139, 34) : Color.DARK_GRAY);
+
         String compSvName = "Unknown";
         List<String[]> allMatches = DBHelper.getAllMatches();
         for(String[] m : allMatches) {
-            // Find match record for this student
             if(m[1].equals(studentId)) {
-                String compSvId = m[8]; // Index 8 is CompSvID in new 9-col format
+                String compSvId = m[8]; 
                 if(!compSvId.equals("N/A")) {
                     String[] u = DBHelper.getUserById(compSvId);
-                    if(u != null) compSvName = u[3]; // Index 3 is Full Name
+                    if(u != null) compSvName = u[3]; 
                 } else {
-                    // Fallback to Company Name if legacy data
                     compSvName = m[4] + " (Legacy)";
                 }
                 break;
             }
         }
         
-        // Update Title
         lblCompTitle.setText("Company Supervisor Evaluation (By: " + compSvName + ")");
 
-        // 2. Load Feedback Data
         String[] feedback = DBHelper.getStudentFeedback(studentId);
 
         int cScore = 0, aScore = 0;
@@ -258,11 +264,9 @@ public class AcademicViewProgressUI extends JFrame {
             if (!feedback[8].equals("N/A") && !feedback[8].isEmpty()) aText = feedback[8];
         }
 
-        // Update UI
         updateSection(barComp, lblCompScore, txtCompFeed, cScore, cExists, cText, "Company Score: ");
         updateSection(barAcad, lblAcadScore, txtAcadFeed, aScore, aExists, aText, "Academic Score: ");
 
-        // Average
         if (cExists && aExists) {
             int avg = (cScore + aScore) / 2;
             barTotal.setValue(avg);
@@ -285,7 +289,7 @@ public class AcademicViewProgressUI extends JFrame {
             bar.setValue(score);
             bar.setString(score + "%");
             lbl.setText(prefix + score + "/100");
-            lbl.setForeground(new Color(34, 139, 34)); // Green
+            lbl.setForeground(new Color(34, 139, 34)); 
         } else {
             bar.setValue(0);
             bar.setString("Pending");

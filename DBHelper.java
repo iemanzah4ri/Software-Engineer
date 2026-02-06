@@ -1,14 +1,16 @@
 import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Arrays;
 
 public class DBHelper {
     private static final String DB_FOLDER = "database";
     private static final String RESUME_FOLDER = DB_FOLDER + File.separator + "resume";
     private static final String PFP_FOLDER = DB_FOLDER + File.separator + "pfp";
+    private static final String CONTRACT_FOLDER = DB_FOLDER + File.separator + "contracts";
     
     private static final String FILE_NAME = DB_FOLDER + File.separator + "users.txt";
     private static final String LISTING_FILE = DB_FOLDER + File.separator + "listings.txt";
@@ -24,6 +26,7 @@ public class DBHelper {
         new File(DB_FOLDER).mkdirs();
         new File(RESUME_FOLDER).mkdirs();
         new File(PFP_FOLDER).mkdirs();
+        new File(CONTRACT_FOLDER).mkdirs();
     }
 
     private static long generateNextId(String filePath, int idIndex) {
@@ -36,7 +39,8 @@ public class DBHelper {
                     String[] data = line.split(",");
                     if (data.length > idIndex) {
                         try {
-                            long currentId = Long.parseLong(data[idIndex]);
+                            String numPart = data[idIndex].replaceAll("\\D+", "");
+                            long currentId = Long.parseLong(numPart);
                             if (currentId > maxId) maxId = currentId;
                         } catch (NumberFormatException e) {}
                     }
@@ -125,50 +129,107 @@ public class DBHelper {
     }
 
     public static void saveListing(String reg, String comp, String loc, String job, String desc, String status) {
+        long id = generateNextId(LISTING_FILE, 0);
+        String listingId = "L-" + String.format("%05d", id);
         try(FileWriter fw = new FileWriter(LISTING_FILE, true); PrintWriter out = new PrintWriter(fw)){
             String safeDesc = desc.replace("\n", " ").replace(",", ";"); 
-            out.println(reg+","+comp+","+loc+","+job+","+safeDesc+","+status);
+            out.println(listingId+","+reg+","+comp+","+loc+","+job+","+safeDesc+","+status);
         } catch(IOException e){}
     }
+    
     public static List<String[]> getAllListings() {
         List<String[]> list = new ArrayList<>();
         for(String line : readFile(LISTING_FILE)) {
             String[] d = line.split(",");
-            if(d.length>=6) list.add(d);
+            if(d.length>=7) list.add(d);
         }
         return list;
     }
-    public static void approveListing(String r) { updateStatus(LISTING_FILE, r, -1, "Approved", 0); }
-    public static void rejectListing(String r) { updateStatus(LISTING_FILE, r, -1, "Rejected", 0); }
+    public static void approveListing(String listingId) { updateStatus(LISTING_FILE, listingId, -1, "Approved", 0); }
+    public static void rejectListing(String listingId) { updateStatus(LISTING_FILE, listingId, -1, "Rejected", 0); }
 
-    public static void applyForInternship(String sid, String reg, String comp) {
+    public static void applyForInternship(String sid, String listingId, String comp) {
         long id = generateNextId(APP_FILE, 0);
         try(FileWriter fw = new FileWriter(APP_FILE, true); PrintWriter out = new PrintWriter(fw)){
-            out.println(String.format("%07d", id)+","+sid+","+reg+","+comp+",Pending");
+            out.println(String.format("%07d", id)+","+sid+","+listingId+","+comp+",Pending,N/A");
         } catch(IOException e){}
     }
 
-    public static void approveApplication(String appId, String companySvId) {
-        updateStatus(APP_FILE, appId, 4, "Approved", 0);
+    public static void sendOffer(String appId, String startDate, File contractFile) {
+        try {
+            Files.copy(contractFile.toPath(), new File(CONTRACT_FOLDER + File.separator + appId + ".pdf").toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) { return; }
+
+        List<String> lines = readFile(APP_FILE);
+        List<String> newLines = new ArrayList<>();
+        for(String line : lines) {
+            String[] d = line.split(",");
+            if(d[0].equals(appId)) {
+                d[4] = "Offered";
+                if(d.length > 5) d[5] = startDate;
+                else line = String.join(",", d) + "," + startDate;
+                newLines.add(String.join(",", d));
+            } else {
+                newLines.add(line);
+            }
+        }
+        writeFile(APP_FILE, newLines);
+    }
+
+    public static void acceptOffer(String appId) {
+        String[] appData = null;
         for(String line : readFile(APP_FILE)) {
             String[] d = line.split(",");
             if(d[0].equals(appId)) {
-                String sid = d[1];
-                String[] s = getUserById(sid);
-                String job = "Intern";
-                for(String[] lst : getAllListings()) if(lst[0].equals(d[2])) job = lst[3];
-                if(s!=null) saveMatch(sid, s[3], d[2], d[3], job, "N/A", companySvId);
-                
-                updateStatus(LISTING_FILE, d[2], -1, "Filled", 0);
+                appData = d;
                 break;
             }
         }
+        
+        if(appData == null) return;
+
+        String sid = appData[1];
+        String listingId = appData[2];
+        String startDate = (appData.length > 5) ? appData[5] : "N/A";
+        
+        String[] s = getUserById(sid);
+        String job = "Intern";
+        String listingReg = "Unknown";
+        String compSvId = "N/A"; 
+
+        for(String[] lst : getAllListings()) {
+            if(lst[0].equals(listingId)) {
+                listingReg = lst[1]; 
+                job = lst[4];
+            }
+        }
+        
+        List<String[]> svs = getUsersByRole("Company Supervisor", "");
+        for(String[] sv : svs) {
+            String[] full = getUserById(sv[0]);
+            if(full.length > 8 && full[8].equalsIgnoreCase(appData[3])) {
+                compSvId = full[0];
+                break;
+            }
+        }
+
+        if(s != null) saveMatch(sid, s[3], listingReg, appData[3], job, startDate, "N/A", compSvId);
+        
+        updateStatus(LISTING_FILE, listingId, -1, "Filled", 0);
+        updateStatus(APP_FILE, appId, 4, "Accepted", 0);
     }
+
     public static void rejectApplication(String appId) { updateStatus(APP_FILE, appId, 4, "Rejected", 0); }
-    public static boolean hasApplied(String sid, String reg) {
+    
+    public static File getContractFile(String appId) {
+        File f = new File(CONTRACT_FOLDER + File.separator + appId + ".pdf");
+        return f.exists() ? f : null;
+    }
+
+    public static boolean hasApplied(String sid, String listingId) {
         for(String line : readFile(APP_FILE)) {
             String[] d = line.split(",");
-            if(d.length>=3 && d[1].equals(sid) && d[2].equals(reg)) return true;
+            if(d.length>=3 && d[1].equals(sid) && d[2].equals(listingId)) return true;
         }
         return false;
     }
@@ -196,10 +257,10 @@ public class DBHelper {
         }
         return list;
     }
-    public static void saveMatch(String sid, String sname, String reg, String cname, String job, String aid, String cid) {
+    public static void saveMatch(String sid, String sname, String reg, String cname, String job, String startDate, String aid, String cid) {
         long mid = generateNextId(MATCH_FILE, 0);
         try(FileWriter fw = new FileWriter(MATCH_FILE, true); PrintWriter out = new PrintWriter(fw)){
-            out.println(String.format("%07d", mid)+","+sid+","+sname+","+reg+","+cname+","+job+","+LocalDate.now()+","+aid+","+cid);
+            out.println(String.format("%07d", mid)+","+sid+","+sname+","+reg+","+cname+","+job+","+startDate+","+aid+","+cid);
         } catch(IOException e){}
         updateStudentPlacement(sid, "Placed");
     }
@@ -294,6 +355,25 @@ public class DBHelper {
         }
         writeFile(ATTENDANCE_FILE, newLines);
     }
+    
+    public static void updateAttendanceStatus(String attId, String status) {
+        updateStatus(ATTENDANCE_FILE, attId, 6, status, 0);
+    }
+    
+    public static void updateAttendanceEntry(String attId, String date, String in, String out, String status) {
+        List<String> lines = readFile(ATTENDANCE_FILE);
+        List<String> newLines = new ArrayList<>();
+        for(String l : lines) {
+            String[] d = l.split(",");
+            if(d.length > 0 && d[0].equals(attId)) {
+                newLines.add(d[0]+","+d[1]+","+d[2]+","+date+","+in+","+out+","+status);
+            } else {
+                newLines.add(l);
+            }
+        }
+        writeFile(ATTENDANCE_FILE, newLines);
+    }
+
     public static List<String[]> getStudentAttendance(String sid) {
         List<String[]> list = new ArrayList<>();
         for(String l : readFile(ATTENDANCE_FILE)) {
@@ -302,6 +382,57 @@ public class DBHelper {
         }
         return list;
     }
+    
+    public static int calculateAttendancePercentage(String studentId) {
+        LocalDate startDate = null;
+        for(String[] m : getAllMatches()) {
+            if(m[1].equals(studentId)) {
+                try {
+                    startDate = LocalDate.parse(m[6]);
+                } catch(Exception e) {}
+                break;
+            }
+        }
+        
+        if (startDate == null || startDate.isAfter(LocalDate.now())) return 100;
+
+        LocalDate today = LocalDate.now();
+        int expectedDays = 0;
+        
+        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
+            DayOfWeek day = date.getDayOfWeek();
+            if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+                expectedDays++;
+            }
+        }
+        
+        if (expectedDays == 0) return 100;
+
+        int attendedDays = 0;
+        List<String[]> atts = getStudentAttendance(studentId);
+        List<String> uniqueDates = new ArrayList<>();
+        
+        for (String[] a : atts) {
+            if (a.length >= 7) {
+                String dateStr = a[2];
+                String status = a[6];
+                
+                if (status.equalsIgnoreCase("Verified") || 
+                    status.equalsIgnoreCase("Medical Certificate") || 
+                    status.equalsIgnoreCase("Public Holiday")) {
+                    
+                    if (!uniqueDates.contains(dateStr)) {
+                        uniqueDates.add(dateStr);
+                        attendedDays++;
+                    }
+                }
+            }
+        }
+        
+        int percentage = (int) (((double) attendedDays / expectedDays) * 100);
+        return Math.min(percentage, 100);
+    }
+    
     public static void saveCompanyFeedback(String sid, String sname, String cname, String sc, String fb) {
         saveFeedback(COMPANY_FEEDBACK_FILE, sid, sname, cname, sc, fb);
     }
