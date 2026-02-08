@@ -1,7 +1,5 @@
-//main entry point for the application
-//handles authentication for all user roles
-//redirects users to specific dashboards based on role
 package common;
+// importing all the dashboards
 import admin.*;
 import student.*;
 import company.*;
@@ -11,14 +9,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
+// this is the first screen you see
 public class LoginUI extends javax.swing.JFrame {
 
     public LoginUI() {
         initComponents();
+        // center the window on screen
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         this.setLocation(dim.width/2-this.getSize().width/2,dim.height/2-this.getSize().height/2);
     }
 
+    // generated gui code mostly
     private void initComponents() {
         jPanel2 = new javax.swing.JPanel();
         btnAdminLogin = new javax.swing.JButton();
@@ -36,6 +37,7 @@ public class LoginUI extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         jPanel2.setBackground(new java.awt.Color(204, 204, 255));
         
+        // setup buttons
         btnAdminLogin.setBackground(new java.awt.Color(153, 255, 255));
         btnAdminLogin.setText("Login as Admin");
         btnAdminLogin.addActionListener(evt -> btnAdminLoginActionPerformed(evt));
@@ -62,7 +64,7 @@ public class LoginUI extends javax.swing.JFrame {
         jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 18)); 
         jLabel2.setText("Password");
 
-        // Layout code simplified for brevity but functionally identical
+        // grouping layout stuff
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -89,27 +91,31 @@ public class LoginUI extends javax.swing.JFrame {
         pack();
     }
 
+    // handle admin login
     private void btnAdminLoginActionPerformed(java.awt.event.ActionEvent evt) {                                              
         String user = txtUsername.getText();
         String pass = String.valueOf(txtPassword.getPassword());
+        // hardcoded admin
         if (user.equals("admin") && pass.equals("admin123")) {
             this.dispose();
-            new AdminDashboardUI().setVisible(true); // RENAMED
+            new AdminDashboardUI().setVisible(true); 
         } else {
             JOptionPane.showMessageDialog(this, "Invalid Admin Credentials!");
         }
     }                                             
 
+    // handle company login
     private void btnPMLoginActionPerformed(java.awt.event.ActionEvent evt) {                                           
         String inputUser = txtUsername.getText();
         String inputPass = String.valueOf(txtPassword.getPassword());
-        List<String[]> users = DatabaseHelper.getUsersByRole("Company Supervisor", ""); // RENAMED
+        List<String[]> users = DatabaseHelper.getUsersByRole("Company Supervisor", ""); 
         boolean found = false;
+        // check match
         for (String[] u : users) {
             String[] fullDetails = DatabaseHelper.getUserById(u[0]);
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 this.dispose();
-                new CompanyDashboardUI(u[0]).setVisible(true); // RENAMED
+                new CompanyDashboardUI(u[0]).setVisible(true); 
                 found = true;
                 break;
             }
@@ -117,16 +123,18 @@ public class LoginUI extends javax.swing.JFrame {
         if (!found) JOptionPane.showMessageDialog(this, "Invalid Company Supervisor Credentials!");
     }                                          
 
+    // handle academic login
     private void btnLecturerLoginActionPerformed(java.awt.event.ActionEvent evt) {                                                 
         String inputUser = txtUsername.getText();
         String inputPass = String.valueOf(txtPassword.getPassword());
-        List<String[]> users = DatabaseHelper.getUsersByRole("Academic Supervisor", ""); // RENAMED
+        List<String[]> users = DatabaseHelper.getUsersByRole("Academic Supervisor", ""); 
         boolean found = false;
+        // check match
         for (String[] u : users) {
             String[] fullDetails = DatabaseHelper.getUserById(u[0]);
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 this.dispose();
-                new AcademicDashboardUI(u[0]).setVisible(true); // RENAMED
+                new AcademicDashboardUI(u[0]).setVisible(true); 
                 found = true;
                 break;
             }
@@ -134,27 +142,31 @@ public class LoginUI extends javax.swing.JFrame {
         if (!found) JOptionPane.showMessageDialog(this, "Invalid Academic Supervisor Credentials!");
     }                                                
 
+    // handle student login
     private void btnStudentLoginActionPerformed(java.awt.event.ActionEvent evt) {                                                
         String inputUser = txtUsername.getText();
         String inputPass = String.valueOf(txtPassword.getPassword());
-        List<String[]> users = DatabaseHelper.getUsersByRole("Student", ""); // RENAMED
+        List<String[]> users = DatabaseHelper.getUsersByRole("Student", ""); 
         boolean found = false;
+        // loop and check
         for (String[] u : users) {
             String[] fullDetails = DatabaseHelper.getUserById(u[0]);
             if (fullDetails != null && fullDetails[1].equals(inputUser) && fullDetails[2].equals(inputPass)) {
                 found = true;
                 this.dispose();
-                new StudentDashboardUI(u[0], fullDetails[3]).setVisible(true); // RENAMED
+                new StudentDashboardUI(u[0], fullDetails[3]).setVisible(true); 
                 break;
             }
         }
         if (!found) JOptionPane.showMessageDialog(this, "Invalid Student Credentials!");
     }
 
+    // main method to start app
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(() -> new LoginUI().setVisible(true));
     }
 
+    // variables declaration
     private javax.swing.JButton btnAdminLogin;
     private javax.swing.JButton btnLecturerLogin;
     private javax.swing.JButton btnPMLogin;

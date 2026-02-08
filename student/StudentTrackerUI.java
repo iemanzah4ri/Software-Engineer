@@ -1,6 +1,5 @@
-//tracks status of submitted internship applications
-//allows students to accept or view offers
 package student;
+// imports
 import common.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -9,28 +8,33 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+// tracks status of submitted internship applications
 public class StudentTrackerUI extends JFrame {
     private final String studentId;
     private DefaultTableModel tableModel;
     private JTable tblApps;
 
+    // constructor
     public StudentTrackerUI(String studentId, String studentName) {
         this.studentId = studentId;
         initComponents();
         loadApplications();
     }
 
+    // build ui
     private void initComponents() {
         setTitle("Track Applications");
         setSize(800, 500);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         
+        // table
         String[] cols = {"App ID", "Company", "Internship ID", "Status"};
         tableModel = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c) { return false; } };
         tblApps = new JTable(tableModel);
         
         add(new JScrollPane(tblApps), BorderLayout.CENTER);
         
+        // buttons
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         
         JButton btnViewContract = new JButton("View Contract");
@@ -51,20 +55,22 @@ public class StudentTrackerUI extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    // get my applications
     private void loadApplications() {
         tableModel.setRowCount(0);
-        List<String[]> apps = DatabaseHelper.getApplicationsByStudent(studentId); // UPDATED
+        List<String[]> apps = DatabaseHelper.getApplicationsByStudent(studentId); 
         for (String[] app : apps) {
             tableModel.addRow(new Object[]{app[0], app[3], app[2], app[4]});
         }
     }
 
+    // open contract pdf if offered
     private void viewContract() {
         int row = tblApps.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Select an application."); return; }
         
         String appId = tableModel.getValueAt(row, 0).toString();
-        File contract = DatabaseHelper.getContractFile(appId); // UPDATED
+        File contract = DatabaseHelper.getContractFile(appId); 
         
         if (contract != null && contract.exists()) {
             try {
@@ -77,11 +83,13 @@ public class StudentTrackerUI extends JFrame {
         }
     }
 
+    // accept offer logic
     private void acceptOffer() {
         int row = tblApps.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Select an offer to accept."); return; }
         
         String status = tableModel.getValueAt(row, 3).toString();
+        // check status
         if (status.equalsIgnoreCase("Position Filled")) {
             JOptionPane.showMessageDialog(this, "Cannot accept. This position has been filled by another candidate.");
             return;
@@ -91,16 +99,18 @@ public class StudentTrackerUI extends JFrame {
             return;
         }
         
-        String[] student = DatabaseHelper.getUserById(studentId); // UPDATED
+        // check if already placed
+        String[] student = DatabaseHelper.getUserById(studentId); 
         if (student != null && student.length > 9 && student[9].equalsIgnoreCase("Placed")) {
             JOptionPane.showMessageDialog(this, "You are already placed in an internship!");
             return;
         }
         
+        // confirm action
         int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to accept this offer?\nThis will finalize your placement.", "Confirm Acceptance", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             String appId = tableModel.getValueAt(row, 0).toString();
-            boolean success = DatabaseHelper.acceptOffer(appId); // UPDATED
+            boolean success = DatabaseHelper.acceptOffer(appId); 
             
             if (success) {
                 JOptionPane.showMessageDialog(this, "Offer Accepted! You have been placed.");

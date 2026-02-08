@@ -1,4 +1,5 @@
 package admin;
+// imports
 import common.*;
 
 import javax.swing.*;
@@ -8,6 +9,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+// edit academic supervisor details
 public class AdminEditAcademicUI extends JFrame {
     private JTextField searchField, userField, passField, nameField;
     private JTable supervisorTable;
@@ -21,16 +23,19 @@ public class AdminEditAcademicUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        // header
         JLabel titleLabel = new JLabel("Edit Academic Supervisor Details", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
 
+        // footer
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton backBtn = new JButton("Back Home");
         backBtn.addActionListener(e -> dispose());
         footerPanel.add(backBtn);
         add(footerPanel, BorderLayout.SOUTH);
         
+        // split pane for list vs details
         JSplitPane splitPane = new JSplitPane();
         
         //left panel for list
@@ -38,11 +43,13 @@ public class AdminEditAcademicUI extends JFrame {
         JPanel searchPanel = new JPanel();
         searchField = new JTextField(10);
         JButton searchBtn = new JButton("Search");
+        // search function
         searchBtn.addActionListener(e -> loadSupervisors(searchField.getText()));
         searchPanel.add(new JLabel("ID/Name:"));
         searchPanel.add(searchField);
         searchPanel.add(searchBtn);
         
+        // table setup
         String[] columns = {"ID", "Username", "Full Name"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
@@ -54,6 +61,7 @@ public class AdminEditAcademicUI extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 int row = supervisorTable.getSelectedRow();
                 if (row != -1) {
+                    // load info into right panel
                     loadSupervisorDetails(supervisorTable.getValueAt(row, 0).toString());
                 }
             }
@@ -68,6 +76,7 @@ public class AdminEditAcademicUI extends JFrame {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
+        // fields
         gbc.gridx = 0; gbc.gridy = 0; rightPanel.add(new JLabel("Username:"), gbc);
         gbc.gridx = 1; userField = new JTextField(15); rightPanel.add(userField, gbc);
 
@@ -77,6 +86,7 @@ public class AdminEditAcademicUI extends JFrame {
         gbc.gridx = 0; gbc.gridy = 2; rightPanel.add(new JLabel("Fullname:"), gbc);
         gbc.gridx = 1; nameField = new JTextField(15); rightPanel.add(nameField, gbc);
 
+        // modify button
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
         JButton modifyBtn = new JButton("Modify");
         modifyBtn.addActionListener(e -> updateSupervisor());
@@ -87,10 +97,12 @@ public class AdminEditAcademicUI extends JFrame {
         splitPane.setDividerLocation(300);
         add(splitPane, BorderLayout.CENTER);
 
+        // initial load
         loadSupervisors("");
         setLocationRelativeTo(null);
     }
 
+    // fetch from db
     private void loadSupervisors(String query) {
         //refresh the list
         tableModel.setRowCount(0);
@@ -100,6 +112,7 @@ public class AdminEditAcademicUI extends JFrame {
         }
     }
 
+    // load one user
     private void loadSupervisorDetails(String id) {
         //fill text fields
         String[] details = DatabaseHelper.getUserById(id);
@@ -111,6 +124,7 @@ public class AdminEditAcademicUI extends JFrame {
         }
     }
 
+    // save changes
     private void updateSupervisor() {
         if (currentId == null) {
             JOptionPane.showMessageDialog(this, "Please select a supervisor first.");
@@ -130,6 +144,7 @@ public class AdminEditAcademicUI extends JFrame {
         //update db
         DatabaseHelper.updateAcademicSupervisor(currentId, newUser, newPass, newName);
         JOptionPane.showMessageDialog(this, "Updated Successfully!");
+        // refresh list
         loadSupervisors("");
     }
 }

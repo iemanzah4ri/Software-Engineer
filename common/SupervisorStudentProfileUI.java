@@ -1,6 +1,5 @@
-//read-only view of student details for supervisors
-//displays student contact info and photo
 package common;
+// imports
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -10,6 +9,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.List;
 
+// allows supervisor to see student details
 public class SupervisorStudentProfileUI extends JFrame {
 
     private String supervisorId;
@@ -20,12 +20,14 @@ public class SupervisorStudentProfileUI extends JFrame {
     private JLabel lblImage;
     private JTextField txtName, txtEmail, txtContact, txtAddress, txtIntake;
 
+    // constructor
     public SupervisorStudentProfileUI(String supervisorId) {
         this.supervisorId = supervisorId;
         initComponents();
         loadStudentList("");
     }
 
+    // build layout
     private void initComponents() {
         setTitle("Assigned Students & Profiles");
         setSize(1000, 600); 
@@ -33,11 +35,13 @@ public class SupervisorStudentProfileUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        // header
         JLabel titleLabel = new JLabel("Assigned Students", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setBorder(new EmptyBorder(15, 0, 15, 0));
         add(titleLabel, BorderLayout.NORTH);
 
+        // split screen for list and details
         JSplitPane splitPane = new JSplitPane();
         splitPane.setDividerLocation(550); 
         add(splitPane, BorderLayout.CENTER);
@@ -45,6 +49,7 @@ public class SupervisorStudentProfileUI extends JFrame {
         // --- Left Panel: Student List ---
         JPanel leftPanel = new JPanel(new BorderLayout());
         
+        // search bar
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchField = new JTextField(20);
         JButton btnSearch = new JButton("Search Name");
@@ -54,11 +59,13 @@ public class SupervisorStudentProfileUI extends JFrame {
         searchPanel.add(searchField);
         searchPanel.add(btnSearch);
 
+        // table
         String[] columns = {"ID", "Name", "Position", "Start Date"};
         tableModel = new DefaultTableModel(columns, 0) { public boolean isCellEditable(int r, int c) { return false; } };
         studentTable = new JTable(tableModel);
         studentTable.setRowHeight(25);
         
+        // click listener to update right panel
         studentTable.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int row = studentTable.getSelectedRow();
@@ -77,10 +84,12 @@ public class SupervisorStudentProfileUI extends JFrame {
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
         
+        // image placeholder
         lblImage = new JLabel("Select Student", SwingConstants.CENTER);
         lblImage.setPreferredSize(new Dimension(120, 120));
         lblImage.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         
+        // form fields (read only)
         JPanel detailsForm = new JPanel(new GridLayout(6, 2, 10, 10));
         txtName = new JTextField(); txtName.setEditable(false);
         txtIntake = new JTextField(); txtIntake.setEditable(false);
@@ -94,6 +103,7 @@ public class SupervisorStudentProfileUI extends JFrame {
         addDetail(detailsForm, "Contact:", txtContact);
         addDetail(detailsForm, "Address:", txtAddress);
         
+        // layout fix
         JPanel imgContainer = new JPanel();
         imgContainer.add(lblImage);
         
@@ -105,6 +115,7 @@ public class SupervisorStudentProfileUI extends JFrame {
         
         splitPane.setRightComponent(rightPanel);
 
+        // footer
         JPanel footer = new JPanel();
         JButton btnBack = new JButton("Back Home");
         btnBack.addActionListener(e -> dispose());
@@ -112,14 +123,16 @@ public class SupervisorStudentProfileUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
     }
 
+    // helper to add fields
     private void addDetail(JPanel p, String label, JTextField field) {
         p.add(new JLabel(label));
         p.add(field);
     }
 
+    // populate list
     private void loadStudentList(String query) {
         tableModel.setRowCount(0);
-        List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId); // UPDATED
+        List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId); 
         
         for (String[] match : matches) {
             String id = match[1];
@@ -127,6 +140,7 @@ public class SupervisorStudentProfileUI extends JFrame {
             String position = match[5];
             String date = match[6];
             
+            // basic search filter
             boolean matchesSearch = query.isEmpty() || name.toLowerCase().contains(query.toLowerCase());
             
             if (matchesSearch) {
@@ -135,8 +149,9 @@ public class SupervisorStudentProfileUI extends JFrame {
         }
     }
 
+    // populate details
     private void loadProfileDetails(String id) {
-        String[] user = DatabaseHelper.getUserById(id); // UPDATED
+        String[] user = DatabaseHelper.getUserById(id); 
         if (user != null) {
             txtName.setText(user[3]);
             txtIntake.setText(user.length > 4 ? user[4] : "N/A");
@@ -144,10 +159,12 @@ public class SupervisorStudentProfileUI extends JFrame {
             txtContact.setText(user.length > 7 ? user[7] : "N/A");
             txtAddress.setText(user.length > 8 ? user[8] : "N/A"); 
 
-            File pfp = DatabaseHelper.getProfileImage(id); // UPDATED
+            // image logic
+            File pfp = DatabaseHelper.getProfileImage(id); 
             if (pfp != null && pfp.exists()) {
                 ImageIcon icon = new ImageIcon(pfp.getAbsolutePath());
                 if (icon.getIconWidth() > 0) {
+                    // scale it to fit
                     Image img = icon.getImage();
                     Image scaled = img.getScaledInstance(120, 120, Image.SCALE_SMOOTH);
                     lblImage.setIcon(new ImageIcon(scaled));

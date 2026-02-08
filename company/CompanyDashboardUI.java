@@ -1,28 +1,34 @@
-//main dashboard for company supervisors
-//provides access to recruitment and management tools
 package company;
+// standard imports
 import common.*;
 import javax.swing.*;
 import java.awt.*;
 
+// main menu for company supervisor
 public class CompanyDashboardUI extends JFrame {
+    // user info
     private String supervisorId;
     private String supervisorName;
     private String companyName;
 
+    // constructor
     public CompanyDashboardUI(String id) {
         this.supervisorId = id;
-        String[] data = DatabaseHelper.getUserById(id); // UPDATED
+        // get user data
+        String[] data = DatabaseHelper.getUserById(id); 
         if (data != null) {
             this.supervisorName = data[3];
+            // company name is stored in column 8
             this.companyName = (data.length > 8) ? data[8] : "Unknown";
         }
         initComponents();
         setSize(800, 600);
         setLocationRelativeTo(null);
+        // check messages
         checkNotifications();
     }
     
+    // alert if new messages
     private void checkNotifications() {
         if (NotificationHelper.hasUnreadNotifications(supervisorId)) {
             SwingUtilities.invokeLater(() -> {
@@ -35,6 +41,7 @@ public class CompanyDashboardUI extends JFrame {
         }
     }
 
+    // count unreads
     private int countUnreadNotifications() {
         int count = 0;
         for (String[] notif : NotificationHelper.getNotifications(supervisorId)) {
@@ -45,36 +52,42 @@ public class CompanyDashboardUI extends JFrame {
         return count;
     }
 
+    // setup buttons
     private void initComponents() {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setTitle("Company Supervisor Dashboard - " + companyName);
         setLayout(new BorderLayout());
 
+        // header
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
         JLabel lblWelcome = new JLabel("Welcome " + supervisorName);
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);
         add(header, BorderLayout.NORTH);
 
+        // grid for buttons
         JPanel btnPanel = new JPanel(new GridLayout(7, 1, 10, 10));
         btnPanel.setBorder(BorderFactory.createEmptyBorder(20, 150, 20, 150));
 
+        // creating all menu buttons
         JButton btnManage = new JButton("Manage Applications");
         JButton btnEval = new JButton("Submit Evaluation");
         JButton btnVer = new JButton("Verify Logbook and Attendance");
         JButton btnViewS = new JButton("View Assigned Student Profile");
-        JButton btnCreate = new JButton("Manage Listings");
+        JButton btnCreate = new JButton("Post Listings");
         JButton btnNotif = new JButton("View Notifications");
         JButton btnOut = new JButton("Logout");
 
-        btnManage.addActionListener(e -> new CompanyAppReviewUI(supervisorId, companyName).setVisible(true)); // RENAMED
-        btnEval.addActionListener(e -> new CompanyEvaluationUI(supervisorId).setVisible(true)); // RENAMED
-        btnVer.addActionListener(e -> new CompanyVerifyRecordsUI(supervisorId).setVisible(true)); // RENAMED
-        btnViewS.addActionListener(e -> new SupervisorStudentProfileUI(supervisorId).setVisible(true)); // RENAMED (Shared)
-        btnCreate.addActionListener(e -> new CompanyCreateJobUI("Company", companyName).setVisible(true)); // RENAMED
+        // connecting buttons to their screens
+        btnManage.addActionListener(e -> new CompanyAppReviewUI(supervisorId, companyName).setVisible(true)); 
+        btnEval.addActionListener(e -> new CompanyEvaluationUI(supervisorId).setVisible(true)); 
+        btnVer.addActionListener(e -> new CompanyVerifyRecordsUI(supervisorId).setVisible(true)); 
+        btnViewS.addActionListener(e -> new SupervisorStudentProfileUI(supervisorId).setVisible(true)); 
+        btnCreate.addActionListener(e -> new CompanyCreateJobUI("Company", companyName).setVisible(true)); 
         btnNotif.addActionListener(e -> new NotificationViewUI(supervisorId).setVisible(true));
-        btnOut.addActionListener(e -> { dispose(); new LoginUI().setVisible(true); }); // RENAMED
+        btnOut.addActionListener(e -> { dispose(); new LoginUI().setVisible(true); }); 
 
+        // adding to panel
         btnPanel.add(btnManage);
         btnPanel.add(btnEval);
         btnPanel.add(btnVer);

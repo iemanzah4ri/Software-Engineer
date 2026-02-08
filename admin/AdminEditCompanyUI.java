@@ -8,6 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+// edit company supervisor info
 public class AdminEditCompanyUI extends JFrame {
     private JTextField searchField, userField, passField, nameField, companyField, positionField, emailField;
     private JTable supervisorTable;
@@ -68,6 +69,7 @@ public class AdminEditCompanyUI extends JFrame {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // form fields
         gbc.gridx = 0; gbc.gridy = 0; rightPanel.add(new JLabel("Username:"), gbc);
         gbc.gridx = 1; userField = new JTextField(15); rightPanel.add(userField, gbc);
 
@@ -109,6 +111,7 @@ public class AdminEditCompanyUI extends JFrame {
         setVisible(true);
     }
 
+    // load list
     private void loadSupervisors(String query) {
         //clear table and reload
         tableModel.setRowCount(0);
@@ -118,6 +121,7 @@ public class AdminEditCompanyUI extends JFrame {
         }
     }
 
+    // fill form
     private void loadSupervisorDetails(String id) {
         //get details from db
         String[] details = DatabaseHelper.getUserById(id);
@@ -132,6 +136,7 @@ public class AdminEditCompanyUI extends JFrame {
         }
     }
 
+    // save update
     private void updateSupervisor() {
         if (currentId == null) {
             JOptionPane.showMessageDialog(this, "Please select a supervisor first.");

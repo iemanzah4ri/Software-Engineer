@@ -1,4 +1,5 @@
 package company;
+// imports
 import common.*;
 
 import javax.swing.*;
@@ -8,11 +9,12 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
+// this screen is for verifying logbooks and attendance
 public class CompanyVerifyRecordsUI extends JFrame {
 
     private String supervisorId;
     
-    //logbook stuff
+    // logbook ui components
     private JTable tblLog;
     private DefaultTableModel modelLog;
     private JTextField txtLogDate, txtLogTime;
@@ -20,13 +22,14 @@ public class CompanyVerifyRecordsUI extends JFrame {
     private JComboBox<String> cmbLogStatus; 
     private JButton btnEditLog;
 
-    //attendance stuff
+    // attendance ui components
     private JTable tblAtt;
     private DefaultTableModel modelAtt;
     private JSpinner spinAttDate, spinAttIn, spinAttOut;
     private JComboBox<String> cmbAttStatus;
     private JButton btnEditAtt;
 
+    // constructor
     public CompanyVerifyRecordsUI(String supervisorId) {
         this.supervisorId = supervisorId;
         initComponents();
@@ -34,24 +37,26 @@ public class CompanyVerifyRecordsUI extends JFrame {
         loadAttendance();
     }
 
+    // setting up the layout with tabs
     private void initComponents() {
-        //setup window
+        // window setup
         setTitle("Verify Student Records");
         setSize(1100, 700); 
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        //header
+        // header
         JLabel titleLabel = new JLabel("Verify Logbooks & Attendance", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
         add(titleLabel, BorderLayout.NORTH);
 
-        //tabs
+        // tabs
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
+        // creating the two main panels
         JPanel logPanel = createLogbookPanel();
         tabbedPane.addTab("Daily Logbooks", logPanel);
 
@@ -60,7 +65,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
 
         add(tabbedPane, BorderLayout.CENTER);
         
-        //back button
+        // back button at bottom
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
         
@@ -73,13 +78,14 @@ public class CompanyVerifyRecordsUI extends JFrame {
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
+    // helper to build logbook tab
     private JPanel createLogbookPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
         JSplitPane splitPane = new JSplitPane();
         splitPane.setDividerLocation(600); 
 
-        //table setup
+        // table setup
         String[] cols = {"LogID", "Student", "Date", "Activity", "Hours", "Status"};
         modelLog = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) { return false; }
@@ -88,15 +94,16 @@ public class CompanyVerifyRecordsUI extends JFrame {
         tblLog.setRowHeight(25);
         tblLog.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         
-        //click listener
+        // when a row is clicked
         tblLog.getSelectionModel().addListSelectionListener(e -> {
             int row = tblLog.getSelectedRow();
             if (row != -1) {
+                // fill text fields
                 txtLogDate.setText(modelLog.getValueAt(row, 2).toString());
                 txtLogActivity.setText(modelLog.getValueAt(row, 3).toString());
                 txtLogTime.setText(modelLog.getValueAt(row, 4).toString());
                 
-                //set dropdown to match
+                // set dropdown
                 String status = modelLog.getValueAt(row, 5).toString();
                 cmbLogStatus.setSelectedItem(status);
             }
@@ -104,7 +111,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
 
         splitPane.setLeftComponent(new JScrollPane(tblLog));
 
-        //right side form
+        // right side details form
         JPanel rightPanel = new JPanel(new GridBagLayout());
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -113,7 +120,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         gbc.insets = new Insets(10, 5, 10, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        //detail header
+        // details header
         JLabel lblDetail = new JLabel("Log Entry Details");
         lblDetail.setFont(new Font("Segoe UI", Font.BOLD, 18));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
@@ -121,7 +128,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         
         gbc.gridwidth = 1;
 
-        //inputs
+        // inputs
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         rightPanel.add(new JLabel("Date:"), gbc);
         
@@ -151,17 +158,17 @@ public class CompanyVerifyRecordsUI extends JFrame {
         txtLogActivity.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         rightPanel.add(new JScrollPane(txtLogActivity), gbc);
 
-        //status dropdown
+        // status combobox
         gbc.gridx = 0; gbc.gridy = 4; gbc.weighty = 0;
         rightPanel.add(new JLabel("Status:"), gbc);
 
         gbc.gridx = 1; 
         String[] statuses = {"Pending", "Verified", "Rejected"};
         cmbLogStatus = new JComboBox<>(statuses);
-        cmbLogStatus.setEnabled(false); //locked by default
+        cmbLogStatus.setEnabled(false); // locked by default
         rightPanel.add(cmbLogStatus, gbc);
 
-        //buttons
+        // action buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         btnPanel.setBackground(Color.WHITE);
         
@@ -186,12 +193,14 @@ public class CompanyVerifyRecordsUI extends JFrame {
         return panel;
     }
 
+    // helper to build attendance tab
     private JPanel createAttendancePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
         JSplitPane splitPane = new JSplitPane();
         splitPane.setDividerLocation(600);
 
+        // table
         String[] cols = {"Att ID", "Student", "Date", "In", "Out", "Status"};
         modelAtt = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int row, int col) { return false; }
@@ -200,6 +209,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         tblAtt.setRowHeight(25);
         tblAtt.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         
+        // listener
         tblAtt.getSelectionModel().addListSelectionListener(e -> {
             int row = tblAtt.getSelectedRow();
             if (row != -1) {
@@ -211,6 +221,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
                     SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm");
                     
+                    // converting string to spinner date
                     if(!d.isEmpty()) spinAttDate.setValue(sdfDate.parse(d));
                     if(!in.isEmpty() && !in.equals("Pending")) spinAttIn.setValue(sdfTime.parse(in));
                     if(!out.isEmpty() && !out.equals("Pending")) spinAttOut.setValue(sdfTime.parse(out));
@@ -230,7 +241,6 @@ public class CompanyVerifyRecordsUI extends JFrame {
         gbc.insets = new Insets(10, 5, 10, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        //title
         JLabel lblTitle = new JLabel("Attendance Details");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
@@ -238,7 +248,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         
         gbc.gridwidth = 1;
 
-        //spinners
+        // spinners for date/time
         spinAttDate = new JSpinner(new SpinnerDateModel());
         spinAttDate.setEditor(new JSpinner.DateEditor(spinAttDate, "yyyy-MM-dd"));
         spinAttDate.setEnabled(false);
@@ -266,7 +276,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         cmbAttStatus.setEnabled(false);
         rightPanel.add(cmbAttStatus, gbc);
 
-        //buttons
+        // buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         btnPanel.setBackground(Color.WHITE);
         
@@ -290,24 +300,28 @@ public class CompanyVerifyRecordsUI extends JFrame {
         return panel;
     }
 
+    // load logbooks from db
     private void loadLogbooks() {
         modelLog.setRowCount(0);
+        // get my students
         List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId);
         List<String[]> allLogs = DatabaseHelper.getAllLogbooks();
         
-        //match student to logs
+        // iterate matches
         for (String[] m : matches) {
             String studentId = m[1];
             
-            //filter: skip if completed/terminated
+            // check student status
             String[] user = DatabaseHelper.getUserById(studentId);
             String status = (user != null && user.length > 9) ? user[9] : "Unknown";
             
+            // only show active students
             if (!status.equalsIgnoreCase("Placed")) {
-                continue; //skip this student
+                continue; 
             }
 
             String studentName = m[2];
+            // find logs for this student
             for (String[] log : allLogs) {
                 if (log[1].equals(studentId)) {
                     modelLog.addRow(new Object[]{log[0], studentName, log[2], log[3], log[4], log[5]});
@@ -316,18 +330,19 @@ public class CompanyVerifyRecordsUI extends JFrame {
         }
     }
     
+    // load attendance from db
     private void loadAttendance() {
         modelAtt.setRowCount(0);
         List<String[]> matches = DatabaseHelper.getMatchesForSupervisor(supervisorId);
         for (String[] match : matches) {
             String studentId = match[1];
             
-            //filter: skip if completed/terminated
+            // check status
             String[] user = DatabaseHelper.getUserById(studentId);
             String status = (user != null && user.length > 9) ? user[9] : "Unknown";
             
             if (!status.equalsIgnoreCase("Placed")) {
-                continue; //skip
+                continue; 
             }
 
             List<String[]> atts = DatabaseHelper.getStudentAttendance(studentId);
@@ -337,22 +352,22 @@ public class CompanyVerifyRecordsUI extends JFrame {
         }
     }
 
+    // handle edit button for logs
     private void toggleEditLog() {
         int row = tblLog.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Select a logbook entry first."); return; }
 
         if (btnEditLog.getText().equals("Edit")) {
-            //unlock fields
+            // unlock fields
             setLogEditable(true);
             btnEditLog.setText("Save");
         } else {
-            //save data
+            // save data
             String id = modelLog.getValueAt(row, 0).toString();
             String newStatus = cmbLogStatus.getSelectedItem().toString(); 
             
-            //update text fields
+            // update db
             DatabaseHelper.updateLogbookEntry(id, txtLogDate.getText(), txtLogActivity.getText(), txtLogTime.getText());
-            //update status
             DatabaseHelper.updateLogbookStatus(id, newStatus);
             
             JOptionPane.showMessageDialog(this, "Changes Saved!");
@@ -362,6 +377,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         }
     }
     
+    // handle edit button for attendance
     private void toggleEditAtt() {
         int row = tblAtt.getSelectedRow();
         if (row == -1) { JOptionPane.showMessageDialog(this, "Select an attendance entry first."); return; }
@@ -370,13 +386,14 @@ public class CompanyVerifyRecordsUI extends JFrame {
             setAttEditable(true);
             btnEditAtt.setText("Save");
         } else {
-            //save data
+            // save data
             String id = modelAtt.getValueAt(row, 0).toString();
             String st = (cmbAttStatus.getSelectedItem() != null) ? cmbAttStatus.getSelectedItem().toString() : "Pending";
             
             SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd");
             SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm");
             
+            // format spinners
             String dateStr = sdfDate.format(spinAttDate.getValue());
             String inStr = sdfTime.format(spinAttIn.getValue());
             String outStr = sdfTime.format(spinAttOut.getValue());
@@ -389,6 +406,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         }
     }
 
+    // helper to enable/disable log fields
     private void setLogEditable(boolean b) {
         txtLogDate.setEditable(b);
         txtLogTime.setEditable(b);
@@ -396,6 +414,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         cmbLogStatus.setEnabled(b); 
     }
     
+    // helper to enable/disable attendance fields
     private void setAttEditable(boolean b) {
         spinAttDate.setEnabled(b);
         spinAttIn.setEnabled(b);
@@ -403,6 +422,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         cmbAttStatus.setEnabled(b);
     }
 
+    // quick verify button for log
     private void verifyLogEntry() {
         int row = tblLog.getSelectedRow();
         if (row != -1) {
@@ -415,6 +435,7 @@ public class CompanyVerifyRecordsUI extends JFrame {
         }
     }
     
+    // quick verify button for attendance
     private void verifyAttendanceEntry() {
         int row = tblAtt.getSelectedRow();
         if (row != -1) {

@@ -1,6 +1,5 @@
-//interface for students to update personal details
-//handles profile picture upload and display
 package student;
+// imports
 import common.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,6 +8,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 
+// form to update user details
 public class StudentProfileUI extends JFrame {
     private String studentId;
     private String studentName;
@@ -17,6 +17,7 @@ public class StudentProfileUI extends JFrame {
     private JLabel lblProfilePicPreview;
     private File tempProfileImage = null;
 
+    // constructor with force option
     public StudentProfileUI(String id, String name, boolean forced) {
         this.studentId = id;
         this.studentName = name;
@@ -25,10 +26,12 @@ public class StudentProfileUI extends JFrame {
         loadData();
     }
 
+    // default constructor
     public StudentProfileUI(String id) {
         this(id, "Student", false);
     }
 
+    // build ui
     private void initComponents() {
         setTitle("Update My Profile");
         setSize(600, 700);
@@ -40,6 +43,7 @@ public class StudentProfileUI extends JFrame {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
+        // profile pic area
         lblProfilePicPreview = new JLabel();
         lblProfilePicPreview.setPreferredSize(new Dimension(100, 100));
         lblProfilePicPreview.setBorder(BorderFactory.createLineBorder(Color.GRAY));
@@ -53,6 +57,7 @@ public class StudentProfileUI extends JFrame {
         mainPanel.add(btnUploadPic);
         mainPanel.add(Box.createVerticalStrut(20));
 
+        // fields
         JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
         txtUser = new JTextField();
         txtPass = new JTextField();
@@ -72,6 +77,7 @@ public class StudentProfileUI extends JFrame {
         
         mainPanel.add(formPanel);
         
+        // resume upload
         JButton btnUploadResume = new JButton("Upload / Update Resume (PDF)");
         btnUploadResume.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnUploadResume.addActionListener(e -> uploadResume());
@@ -80,6 +86,7 @@ public class StudentProfileUI extends JFrame {
 
         add(mainPanel, BorderLayout.CENTER);
 
+        // footer
         JPanel footer = new JPanel();
         JButton btnSave = new JButton("Save & Update");
         btnSave.setBackground(new Color(100, 200, 100));
@@ -93,13 +100,15 @@ public class StudentProfileUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
     }
 
+    // helper to add field
     private void addFormField(JPanel p, String label, JTextField field) {
         p.add(new JLabel(label));
         p.add(field);
     }
 
+    // fill fields from db
     private void loadData() {
-        String[] data = DatabaseHelper.getUserById(studentId); // UPDATED
+        String[] data = DatabaseHelper.getUserById(studentId); 
         if (data != null) {
             txtUser.setText(data[1]);
             txtPass.setText(data[2]);
@@ -109,7 +118,8 @@ public class StudentProfileUI extends JFrame {
             txtContact.setText(data.length > 7 ? data[7] : "");
             txtAddress.setText(data.length > 8 ? data[8] : "");
             
-            File pfp = DatabaseHelper.getProfileImage(studentId); // UPDATED
+            // load pfp
+            File pfp = DatabaseHelper.getProfileImage(studentId); 
             if (pfp != null && pfp.exists()) {
                 ImageIcon icon = new ImageIcon(pfp.getAbsolutePath());
                 Image img = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
@@ -120,6 +130,7 @@ public class StudentProfileUI extends JFrame {
         }
     }
 
+    // choose image
     private void uploadPicture() {
         JFileChooser ch = new JFileChooser();
         ch.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "png", "jpeg"));
@@ -132,42 +143,46 @@ public class StudentProfileUI extends JFrame {
         }
     }
 
+    // choose pdf
     private void uploadResume() {
         JFileChooser ch = new JFileChooser();
         ch.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
         if(ch.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            boolean success = DatabaseHelper.saveResume(ch.getSelectedFile(), studentId); // UPDATED
+            boolean success = DatabaseHelper.saveResume(ch.getSelectedFile(), studentId); 
             if(success) JOptionPane.showMessageDialog(this, "Resume Uploaded Successfully!");
             else JOptionPane.showMessageDialog(this, "Error uploading resume.");
         }
     }
 
+    // save changes
     private void saveProfile(ActionEvent e) {
         if (txtName.getText().isEmpty() || txtMatric.getText().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Name and Matric No cannot be empty.");
             return;
         }
         
-        File resume = DatabaseHelper.getResumeFile(studentId); // UPDATED
+        // checks for forced setup
+        File resume = DatabaseHelper.getResumeFile(studentId); 
         if(isForced && resume == null) {
              JOptionPane.showMessageDialog(this, "You must upload a resume to proceed.", "Validation Error", JOptionPane.ERROR_MESSAGE);
              return;
         }
 
-        boolean hasExistingPic = (DatabaseHelper.getProfileImage(studentId) != null); // UPDATED
+        boolean hasExistingPic = (DatabaseHelper.getProfileImage(studentId) != null); 
         if (isForced && tempProfileImage == null && !hasExistingPic) {
              JOptionPane.showMessageDialog(this, "You must upload a profile picture to proceed.", "Validation Error", JOptionPane.ERROR_MESSAGE);
              return;
         }
         
         if(tempProfileImage != null) {
-            DatabaseHelper.saveProfileImage(tempProfileImage, studentId); // UPDATED
+            DatabaseHelper.saveProfileImage(tempProfileImage, studentId); 
         }
 
-        String[] current = DatabaseHelper.getUserById(studentId); // UPDATED
+        String[] current = DatabaseHelper.getUserById(studentId); 
         String placement = (current != null) ? current[9] : "Not Placed";
         
-        DatabaseHelper.updateUser(studentId, // UPDATED
+        // update db
+        DatabaseHelper.updateUser(studentId, 
             txtUser.getText(), 
             txtPass.getText(), 
             txtName.getText(), 
@@ -183,10 +198,11 @@ public class StudentProfileUI extends JFrame {
         dispose();
         
         if (isForced) {
-            new StudentDashboardUI(studentId, studentName).setVisible(true); // RENAMED
+            new StudentDashboardUI(studentId, studentName).setVisible(true); 
         }
     }
 
+    // close button logic
     private void handleCloseAction() {
         if (isForced) {
             int confirm = JOptionPane.showConfirmDialog(this, 

@@ -1,22 +1,24 @@
-//displays list of notifications for the logged-in user
-//allows marking messages as read or unread
 package common;
+// imports
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
+// window to see my messages
 public class NotificationViewUI extends JFrame {
     private String userId;
     private JTable table;
     private DefaultTableModel model;
     
+    // constructor
     public NotificationViewUI(String userId) {
         this.userId = userId;
         initComponents();
         loadNotifications();
     }
 
+    // setup gui components
     private void initComponents() {
         setTitle("My Notifications");
         setSize(800, 500);
@@ -24,11 +26,13 @@ public class NotificationViewUI extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        // header
         JLabel titleLabel = new JLabel("Notifications", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         add(titleLabel, BorderLayout.NORTH);
 
+        // table setup
         String[] cols = {"ID", "Date", "Message", "Status"};
         model = new DefaultTableModel(cols, 0) {
             @Override
@@ -38,22 +42,26 @@ public class NotificationViewUI extends JFrame {
         };
         table = new JTable(model);
         
+        // hide the ID column cause its ugly
         table.getColumnModel().getColumn(0).setMinWidth(0);
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
         
+        // set sizes
         table.getColumnModel().getColumn(1).setPreferredWidth(100);
         table.getColumnModel().getColumn(2).setPreferredWidth(500);
         table.getColumnModel().getColumn(3).setPreferredWidth(80);
 
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        // buttons
         JPanel btnPanel = new JPanel();
         JButton btnRead = new JButton("Mark as Read");
         JButton btnUnread = new JButton("Mark as Unread");
         JButton btnAll = new JButton("Mark All Read");
         JButton btnBack = new JButton("Back");
 
+        // listeners
         btnRead.addActionListener(e -> markSelectedAsRead());
         btnUnread.addActionListener(e -> markSelectedAsUnread());
         btnAll.addActionListener(e -> markAllAsRead());
@@ -67,9 +75,10 @@ public class NotificationViewUI extends JFrame {
         add(btnPanel, BorderLayout.SOUTH);
     }
 
+    // fill the table
     private void loadNotifications() {
         model.setRowCount(0);
-        List<String[]> notifs = NotificationHelper.getNotifications(userId); // UPDATED
+        List<String[]> notifs = NotificationHelper.getNotifications(userId); 
         
         if (notifs.isEmpty()) {
             model.addRow(new Object[]{"", "", "No notifications.", ""});
@@ -82,6 +91,7 @@ public class NotificationViewUI extends JFrame {
         }
     }
 
+    // update status for selected row
     private void markSelectedAsRead() {
         int row = table.getSelectedRow();
         if (row == -1) {
@@ -92,10 +102,11 @@ public class NotificationViewUI extends JFrame {
         String notifId = model.getValueAt(row, 0).toString();
         if (notifId.isEmpty()) return;
 
-        NotificationHelper.markAsRead(notifId); // UPDATED
+        NotificationHelper.markAsRead(notifId); 
         loadNotifications();
     }
 
+    // update status back to unread
     private void markSelectedAsUnread() {
         int row = table.getSelectedRow();
         if (row == -1) {
@@ -106,12 +117,13 @@ public class NotificationViewUI extends JFrame {
         String notifId = model.getValueAt(row, 0).toString();
         if (notifId.isEmpty()) return;
 
-        NotificationHelper.markAsUnread(notifId); // UPDATED
+        NotificationHelper.markAsUnread(notifId); 
         loadNotifications();
     }
 
+    // clear all
     private void markAllAsRead() {
-        NotificationHelper.markAllAsRead(userId); // UPDATED
+        NotificationHelper.markAllAsRead(userId); 
         loadNotifications();
         JOptionPane.showMessageDialog(this, "All marked as read.");
     }

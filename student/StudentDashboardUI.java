@@ -1,45 +1,52 @@
 package student;
+// standard imports
 import common.*;
-
 import javax.swing.*;
 import java.awt.*;
 
+// the main menu for students
 public class StudentDashboardUI extends JFrame {
 
+    // student data
     private String studentId;
     private String studentName;
     private boolean profileComplete = true;
 
+    // constructor
     public StudentDashboardUI(String id, String name) {
         this.studentId = id;
         this.studentName = name;
-        //check if profile is done before starting
+        // make sure they have a resume uploaded
         this.profileComplete = checkProfileStatus();
         
+        // only show if profile is ok
         if (profileComplete) {
             initComponents();
             setSize(800, 600);
             setLocationRelativeTo(null);
+            // check for messages
             checkNotifications();
         }
     }
     
+    // default constructor
     public StudentDashboardUI(String id) {
         this(id, "Student");
     }
 
+    // override setvisible to block access if incomplete
     @Override
     public void setVisible(boolean b) {
-        //dont show window if profile incomplete
         if (b && !profileComplete) {
             return;
         }
         super.setVisible(b);
     }
     
+    // check for unread alerts
     private void checkNotifications() {
-        //see if there are new msgs
         if (NotificationHelper.hasUnreadNotifications(studentId)) {
+            // run later to prevent lag
             SwingUtilities.invokeLater(() -> {
                 int unreadCount = countUnreadNotifications();
                 JOptionPane.showMessageDialog(this, 
@@ -50,9 +57,9 @@ public class StudentDashboardUI extends JFrame {
         }
     }
 
+    // count how many red dots
     private int countUnreadNotifications() {
         int count = 0;
-        //count how many are unread
         for (String[] notif : NotificationHelper.getNotifications(studentId)) {
             if (notif.length >= 5 && notif[4].equalsIgnoreCase("Unread")) {
                 count++;
@@ -61,34 +68,37 @@ public class StudentDashboardUI extends JFrame {
         return count;
     }
 
+    // setting up the dashboard buttons
     private void initComponents() {
-        //basic window setup
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setTitle("Student Dashboard - " + studentName);
         setLayout(new BorderLayout());
 
-        //header part
+        // header
         JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 20));
         JLabel lblWelcome = new JLabel("Welcome, " + studentName);
         lblWelcome.setFont(new Font("Dialog", Font.BOLD, 24));
         header.add(lblWelcome);
         add(header, BorderLayout.NORTH);
 
-        //buttons grid
+        // button grid
         JPanel buttons = new JPanel(new GridLayout(4, 2, 15, 15));
         buttons.setBorder(BorderFactory.createEmptyBorder(30, 100, 30, 100));
 
+        // profile button
         JButton btnUpdateProfile = new JButton("Update Profile / Upload Resume");
         btnUpdateProfile.addActionListener(e -> new StudentProfileUI(studentId, studentName, false).setVisible(true));
 
+        // job board button
         JButton btnViewListings = new JButton("View & Apply for Internships");
         btnViewListings.addActionListener(e -> new StudentJobBoardUI(studentId).setVisible(true));
         
-        //logbook button
+        // logbook button
         JButton btnSubmitLog = new JButton("Daily Logbook");
         btnSubmitLog.addActionListener(e -> {
-            //check if working and date started
+            // check if they are officially an intern
             if (isActiveIntern()) {
+                // check if start date passed
                 if (DatabaseHelper.isInternshipStarted(studentId)) {
                     new StudentLogbookUI(studentId, studentName).setVisible(true); 
                 } else {
@@ -99,10 +109,10 @@ public class StudentDashboardUI extends JFrame {
             }
         });
 
-        //attendance button
+        // attendance button
         JButton btnAttendance = new JButton("Attendance (Clock In/Out)");
         btnAttendance.addActionListener(e -> {
-            //check permissions again
+            // same checks as logbook
             if (isActiveIntern()) {
                 if (DatabaseHelper.isInternshipStarted(studentId)) {
                     new StudentAttendanceUI(studentId, studentName).setVisible(true);
@@ -114,13 +124,14 @@ public class StudentDashboardUI extends JFrame {
             }
         });
 
+        // tracking apps button
         JButton btnTrack = new JButton("Track Application Status");
         btnTrack.addActionListener(e -> new StudentTrackerUI(studentId, studentName).setVisible(true));
 
-        //progress button
+        // progress button
         JButton btnProgress = new JButton("View Internship Progress and Feedback");
         btnProgress.addActionListener(e -> {
-            //completed students can see this too
+            // can view if placed or completed
             if (canViewProgress()) {
                 new StudentProgressUI(studentId, studentName).setVisible(true);
             } else {
@@ -128,16 +139,18 @@ public class StudentDashboardUI extends JFrame {
             }
         });
         
+        // notifications button
         JButton btnNotif = new JButton("View Notifications");
         btnNotif.addActionListener(e -> new NotificationViewUI(studentId).setVisible(true));
         
-        //logout logic
+        // logout
         JButton btnLogout = new JButton("Logout");
         btnLogout.addActionListener(e -> {
             this.dispose();
             new LoginUI().setVisible(true);
         });
         
+        // add all buttons
         buttons.add(btnUpdateProfile);
         buttons.add(btnViewListings);
         buttons.add(btnTrack);
@@ -150,13 +163,15 @@ public class StudentDashboardUI extends JFrame {
         add(buttons, BorderLayout.CENTER);
     }
     
+    // verify resume exists
     private boolean checkProfileStatus() {
         String[] data = DatabaseHelper.getUserById(studentId);
         if (data == null) return false;
         
-        //make sure they uploaded resume
+        // check file system
         boolean hasResume = DatabaseHelper.getResumeFile(studentId) != null;
         
+        // force them to update if missing
         if (!hasResume) {
             JOptionPane.showMessageDialog(null, "Welcome! Please complete your profile and upload a resume to continue.");
             new StudentProfileUI(studentId, studentName, true).setVisible(true);
@@ -165,9 +180,7 @@ public class StudentDashboardUI extends JFrame {
         return true;
     }
 
-    //helper stuff
-
-    //strict check: only active interns
+    // helper to check if status is Placed
     private boolean isActiveIntern() {
         String[] data = DatabaseHelper.getUserById(studentId);
         if (data == null || data.length <= 9) return false;
@@ -176,7 +189,7 @@ public class StudentDashboardUI extends JFrame {
         return "Placed".equalsIgnoreCase(status);
     }
 
-    //lenient check: active or completed
+    // helper to check if Placed or Completed
     private boolean canViewProgress() {
         String[] data = DatabaseHelper.getUserById(studentId);
         if (data == null || data.length <= 9) return false;

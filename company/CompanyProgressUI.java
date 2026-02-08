@@ -1,16 +1,18 @@
-//simple dashboard to view intern metrics
-//shows attendance and performance overview
 package company;
+// imports
 import common.*;
 import javax.swing.*;
 import java.awt.*;
 
+// simple chart to show stats
 public class CompanyProgressUI extends JFrame {
 
+    // constructor
     public CompanyProgressUI() {
         initComponents();
     }
 
+    // build ui
     private void initComponents() {
         setTitle("View Internship Progress");
         setSize(500, 400);
@@ -22,10 +24,12 @@ public class CompanyProgressUI extends JFrame {
         title.setFont(new Font("Arial", Font.BOLD, 18));
         add(title);
 
+        // hardcoded placeholders for now
         add(createProgressPanel("Attendance", 30));
         add(createProgressPanel("Performance", 70));
         add(createProgressPanel("Overall Progress", 25));
 
+        // back button
         JPanel footer = new JPanel();
         JButton btnBack = new JButton("Back Home");
         btnBack.addActionListener(e -> {
@@ -35,6 +39,7 @@ public class CompanyProgressUI extends JFrame {
         add(footer);
     }
 
+    // helper to make a bar
     private JPanel createProgressPanel(String label, int value) {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
         JLabel lbl = new JLabel(label + ": " + value + "%");

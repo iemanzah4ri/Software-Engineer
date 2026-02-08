@@ -8,6 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+// edit student info
 public class AdminEditStudentUI extends JFrame {
     private JTextField searchField, userField, passField, nameField, matricField;
     private JTable studentTable;
@@ -94,6 +95,7 @@ public class AdminEditStudentUI extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    // load student list
     private void loadStudents(String query) {
         //refresh list
         tableModel.setRowCount(0);
@@ -103,6 +105,7 @@ public class AdminEditStudentUI extends JFrame {
         }
     }
 
+    // get student info
     private void loadStudentDetails(String id) {
         //get data
         String[] details = DatabaseHelper.getUserById(id);
@@ -115,6 +118,7 @@ public class AdminEditStudentUI extends JFrame {
         }
     }
 
+    // save changes
     private void updateStudent() {
         if (currentId == null) {
             JOptionPane.showMessageDialog(this, "Please select a student first.");

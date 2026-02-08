@@ -1,20 +1,24 @@
 package student;
+// imports
 import common.DatabaseHelper;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
+// shows charts and grades
 public class StudentProgressUI extends JFrame {
     
+    // constructor
     public StudentProgressUI(String studentId, String studentName) {
         initComponents(studentId);
     }
 
+    // setup ui
     private void initComponents(String studentId) {
-        //setup window
+        // setup window
         setTitle("Internship Progress & Feedback");
-        setSize(850, 800); //made taller to fit new section
+        setSize(850, 800); 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -24,11 +28,11 @@ public class StudentProgressUI extends JFrame {
         mainContent.setBorder(new EmptyBorder(15, 15, 15, 15));
         mainContent.setBackground(Color.WHITE);
 
-        //get current status from db
+        // get current status from db
         String[] studentData = DatabaseHelper.getUserById(studentId);
         String dbStatus = (studentData != null && studentData.length > 9) ? studentData[9] : "Unknown";
 
-        //status
+        // status panel
         JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusPanel.setBackground(Color.WHITE);
         statusPanel.setBorder(BorderFactory.createTitledBorder("Current Status"));
@@ -37,11 +41,11 @@ public class StudentProgressUI extends JFrame {
         JLabel lblStatus = new JLabel();
         lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
-        //check hours
+        // check hours
         double totalHours = DatabaseHelper.getTotalVerifiedHours(studentId);
         int targetHours = 400;
 
-        //logic to decide what to show
+        // logic to decide what to show based on status
         if (dbStatus.equalsIgnoreCase("Terminated")) {
             lblStatus.setText("Status: TERMINATED");
             lblStatus.setForeground(Color.RED); 
@@ -57,7 +61,7 @@ public class StudentProgressUI extends JFrame {
         mainContent.add(statusPanel);
         mainContent.add(Box.createVerticalStrut(20));
 
-        //hours
+        // hours progress bar
         JPanel progressPanel = new JPanel(new BorderLayout(5, 5));
         progressPanel.setBorder(BorderFactory.createTitledBorder("Internship Hours (Goal: 400h)"));
         progressPanel.setBackground(Color.WHITE);
@@ -75,7 +79,7 @@ public class StudentProgressUI extends JFrame {
         mainContent.add(progressPanel);
         mainContent.add(Box.createVerticalStrut(20));
 
-        //attendance
+        // attendance progress bar
         int attendancePct = DatabaseHelper.calculateAttendancePercentage(studentId); 
         JPanel attPanel = new JPanel(new BorderLayout());
         attPanel.setBorder(BorderFactory.createTitledBorder("Attendance Reliability"));
@@ -85,19 +89,20 @@ public class StudentProgressUI extends JFrame {
         JProgressBar attBar = new JProgressBar(0, 100);
         attBar.setValue(attendancePct);
         attBar.setStringPainted(true);
+        // red if low attendance
         attBar.setForeground(attendancePct >= 80 ? new Color(34, 139, 34) : Color.RED);
         attPanel.add(attBar);
         mainContent.add(attPanel);
         mainContent.add(Box.createVerticalStrut(20));
 
-        //feedback
+        // feedback section
         String[] fb = DatabaseHelper.getStudentFeedback(studentId);
         String companyScore = "Pending", companyFeedback = "No feedback yet.";
         String academicScore = "Pending", academicFeedback = "No feedback yet.";
         int cVal = 0, aVal = 0;
         boolean cDone = false, aDone = false;
         
-        //check if feedback exists
+        // check if feedback exists and parse it
         if (fb != null) {
             if (!fb[5].equals("N/A")) { 
                 companyScore = fb[5] + "/100"; 
@@ -111,12 +116,13 @@ public class StudentProgressUI extends JFrame {
             }
         }
 
+        // add feedback panels
         mainContent.add(createFeedbackPanel("Company Supervisor Evaluation", companyScore, companyFeedback, new Color(240, 248, 255)));
         mainContent.add(Box.createVerticalStrut(15));
         mainContent.add(createFeedbackPanel("Academic Supervisor Evaluation", academicScore, academicFeedback, new Color(255, 250, 240)));
         mainContent.add(Box.createVerticalStrut(20));
 
-        //overall score
+        // overall score section
         JPanel overallPanel = new JPanel(new BorderLayout());
         overallPanel.setBorder(BorderFactory.createTitledBorder("Final Internship Grade"));
         overallPanel.setBackground(Color.WHITE);
@@ -126,11 +132,12 @@ public class StudentProgressUI extends JFrame {
         lblFinal.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblFinal.setHorizontalAlignment(SwingConstants.CENTER);
 
+        // only show final if both are done
         if (cDone && aDone) {
             int avg = (cVal + aVal) / 2;
             lblFinal.setText("Overall Score: " + avg + "/100");
-            if(avg >= 50) lblFinal.setForeground(new Color(34, 139, 34)); //pass
-            else lblFinal.setForeground(Color.RED); //fail
+            if(avg >= 50) lblFinal.setForeground(new Color(34, 139, 34)); // pass
+            else lblFinal.setForeground(Color.RED); // fail
         } else {
             lblFinal.setText("Overall Score: Pending (Waiting for both evaluations)");
             lblFinal.setForeground(Color.GRAY);
@@ -139,12 +146,12 @@ public class StudentProgressUI extends JFrame {
         overallPanel.add(lblFinal, BorderLayout.CENTER);
         mainContent.add(overallPanel);
 
-        //scroll pane for main content
+        // scroll pane for main content
         JScrollPane scroll = new JScrollPane(mainContent);
         scroll.setBorder(null);
         add(scroll, BorderLayout.CENTER);
 
-        
+        // footer
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnBack = new JButton("Back to Dashboard");
         btnBack.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -154,7 +161,7 @@ public class StudentProgressUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
     }
 
-    //helper to make feedback boxes
+    // helper to make feedback boxes with color
     private JPanel createFeedbackPanel(String title, String score, String feedback, Color bg) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -172,7 +179,7 @@ public class StudentProgressUI extends JFrame {
         
         JLabel lblScore = new JLabel("Score: " + score);
         lblScore.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        //red text if pending
+        // red text if pending
         lblScore.setForeground(score.equals("Pending") ? new Color(200, 50, 50) : new Color(34, 139, 34));
 
         header.add(lblTitle, BorderLayout.WEST);

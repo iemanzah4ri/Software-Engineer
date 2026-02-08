@@ -1,4 +1,5 @@
 package company;
+// imports
 import common.DatabaseHelper;
 
 import javax.swing.*;
@@ -6,10 +7,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
+// screen to grade interns at the end
 public class CompanyEvaluationUI extends JFrame {
     private String supervisorId;
     
-    //ui components
+    // ui components
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private JTextField txtScore;
@@ -17,26 +19,29 @@ public class CompanyEvaluationUI extends JFrame {
     private JComboBox<String> cmbFinalStatus; // dropdown
     private JLabel lblSelectedStudent;
 
+    // constructor
     public CompanyEvaluationUI(String id) {
         this.supervisorId = id;
         initComponents();
         loadStudents();
     }
 
+    // build layout
     private void initComponents() {
-        //setup frame
+        // setup frame
         setTitle("Final Evaluation & Completion");
         setSize(950, 600); 
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        //header
+        // header
         JLabel title = new JLabel("Intern Performance & Conclusion", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setBorder(new EmptyBorder(15, 0, 15, 0));
         add(title, BorderLayout.NORTH);
 
+        // split pane
         JSplitPane splitPane = new JSplitPane();
         splitPane.setDividerLocation(480);
 
@@ -51,7 +56,7 @@ public class CompanyEvaluationUI extends JFrame {
         studentTable = new JTable(tableModel);
         studentTable.setRowHeight(25);
         
-        //click listener
+        // click listener
         studentTable.getSelectionModel().addListSelectionListener(e -> {
             int r = studentTable.getSelectedRow();
             if(r != -1) {
@@ -73,7 +78,7 @@ public class CompanyEvaluationUI extends JFrame {
         gbc.insets = new Insets(10, 5, 10, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        //label showing who is being graded
+        // label showing who is being graded
         lblSelectedStudent = new JLabel("Select an intern from the list...");
         lblSelectedStudent.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblSelectedStudent.setForeground(Color.GRAY);
@@ -81,7 +86,7 @@ public class CompanyEvaluationUI extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         rightPanel.add(lblSelectedStudent, gbc);
         
-        //1. score input
+        // 1. score input
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
         rightPanel.add(new JLabel("Performance Score (0-100):"), gbc);
         
@@ -89,7 +94,7 @@ public class CompanyEvaluationUI extends JFrame {
         txtScore = new JTextField();
         rightPanel.add(txtScore, gbc);
 
-        //2. status dropdown (UPDATED: ONLY 2 OPTIONS)
+        // 2. status dropdown (completed or terminated)
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         rightPanel.add(new JLabel("Final Conclusion:"), gbc);
         
@@ -98,7 +103,7 @@ public class CompanyEvaluationUI extends JFrame {
         cmbFinalStatus = new JComboBox<>(statuses);
         rightPanel.add(cmbFinalStatus, gbc);
         
-        //3. feedback input
+        // 3. feedback input
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0; gbc.anchor = GridBagConstraints.NORTHWEST;
         rightPanel.add(new JLabel("Final Comments:"), gbc);
         
@@ -109,7 +114,7 @@ public class CompanyEvaluationUI extends JFrame {
         txtFeedback.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         rightPanel.add(new JScrollPane(txtFeedback), gbc);
         
-        //buttons
+        // buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         btnPanel.setBackground(Color.WHITE);
         
@@ -127,7 +132,7 @@ public class CompanyEvaluationUI extends JFrame {
         splitPane.setRightComponent(rightPanel);
         add(splitPane, BorderLayout.CENTER);
         
-        //footer
+        // footer
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnBack = new JButton("Back to Dashboard");
         btnBack.addActionListener(e -> dispose());
@@ -135,6 +140,7 @@ public class CompanyEvaluationUI extends JFrame {
         add(footer, BorderLayout.SOUTH);
     }
 
+    // load active interns only
     private void loadStudents() {
         tableModel.setRowCount(0);
         java.util.List<String[]> list = DatabaseHelper.getMatchesForSupervisor(supervisorId);
@@ -142,12 +148,12 @@ public class CompanyEvaluationUI extends JFrame {
         for(String[] m : list) {
             String studentId = m[1];
             
-            //check status
+            // check status
             String[] user = DatabaseHelper.getUserById(studentId);
             String status = (user != null && user.length > 9) ? user[9] : "Unknown";
             
-            //ONLY show students who are "Placed" (Active). 
-            //If they are already Completed/Terminated, they don't need another final evaluation.
+            // ONLY show students who are "Placed" (Active). 
+            // If they are already Completed/Terminated, they don't need another final evaluation.
             if (status.equalsIgnoreCase("Placed")) {
                 tableModel.addRow(new Object[]{studentId, m[2], m[5]});
             }
@@ -158,6 +164,7 @@ public class CompanyEvaluationUI extends JFrame {
         }
     }
 
+    // save grade and update status
     private void submit() {
         int r = studentTable.getSelectedRow();
         if(r == -1) { 
@@ -169,7 +176,7 @@ public class CompanyEvaluationUI extends JFrame {
         String feed = txtFeedback.getText().trim();
         String statusSelection = (String) cmbFinalStatus.getSelectedItem();
         
-        //validation
+        // validation
         if(scoreStr.isEmpty() || feed.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please fill in Score and Comments.", "Missing Info", JOptionPane.WARNING_MESSAGE);
             return;
@@ -186,33 +193,34 @@ public class CompanyEvaluationUI extends JFrame {
             return;
         }
         
-        //determine final status (Completed or Terminated)
+        // determine final status (Completed or Terminated)
         String newStatusCode = "Completed"; // Default
         if (statusSelection.startsWith("Terminated")) {
             newStatusCode = "Terminated";
         }
         
-        //get details
+        // get details
         String[] sv = DatabaseHelper.getUserById(supervisorId);
         String cname = (sv!=null && sv.length>8) ? sv[8] : "Unknown";
         String sid = tableModel.getValueAt(r, 0).toString();
         String sname = tableModel.getValueAt(r, 1).toString();
         
-        //1. Save Feedback
+        // 1. Save Feedback
         DatabaseHelper.saveCompanyFeedback(sid, sname, cname, scoreStr, feed);
         
-        //2. Update Status (Ends the internship)
+        // 2. Update Status (Ends the internship)
         DatabaseHelper.updateStudentPlacement(sid, newStatusCode);
         
         JOptionPane.showMessageDialog(this, "Internship Concluded.\nStudent marked as: " + newStatusCode);
         
-        //Reset
+        // Reset inputs
         txtScore.setText("");
         txtFeedback.setText("");
         cmbFinalStatus.setSelectedIndex(0);
         lblSelectedStudent.setText("Select an intern...");
         lblSelectedStudent.setForeground(Color.GRAY);
         
-        loadStudents(); // Reloads table, removing the finished student
+        // Reloads table, removing the finished student
+        loadStudents(); 
     }
 }
