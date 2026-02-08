@@ -745,22 +745,23 @@ public class DatabaseHelper {
 
     // check if student can log hours
     public static boolean isInternshipStarted(String studentId) {
-        List<String> matches = readFile("matches.txt");
+        // use constant so we look in database/ folder, not root!
+        List<String> matches = readFile(MATCH_FILE); 
         java.time.LocalDate today = java.time.LocalDate.now();
         
         for (String line : matches) {
             String[] data = line.split(",");
-            // find student match
+            // match format: MatchID, StudentID, Name, Reg, Comp, Job, STARTDATE, ...
             if (data.length > 6 && data[1].equals(studentId)) {
-                String dateStr = data[6]; // start date column
+                String dateStr = data[6]; // the start date
                 try {
                     java.time.LocalDate startDate = java.time.LocalDate.parse(dateStr);
                     
-                    // check if date is in future
+                    // if today is BEFORE start date, return false (locked)
                     if (today.isBefore(startDate)) {
                         return false;
                     }
-                    return true; 
+                    return true; // date is reached or passed (unlocked)
                     
                 } catch (Exception e) {
                     System.out.println("Date parse error for student " + studentId);
@@ -768,6 +769,6 @@ public class DatabaseHelper {
                 }
             }
         }
-        return false; // no job found
+        return false; // no match found
     }
 }
