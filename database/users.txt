@@ -1,9 +1,0 @@
-89542,iemanjang,123,iemanzaharijang,12,Student,N/A,N/A,N/A,Placed
-<<<<<<< HEAD
-36071,danial,123,danial haykal,ceo,Company Supervisor,danial@gmail.com,N/A,hornbills enterprise,N/A
-53423,amir,123,amir asyraf,N/A,Academic Supervisor,N/A,N/A,N/A,Not Placed
-=======
-35821,abc,abc,abc,abc,Student,N/A,N/A,N/A,Placed
-49646,abc,abc,abc,abc,Company Supervisor,abc,N/A,abc,N/A
-54550,abc,abc,abc,N/A,Academic Supervisor,N/A,N/A,N/A,Not Placed
->>>>>>> main
