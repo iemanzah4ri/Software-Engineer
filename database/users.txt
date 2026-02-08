@@ -1,3 +1,0 @@
-C-00001,abc,abc,abc,abc,Company Supervisor,abc,,abc,N/A
-C-00002,abc,abc,abc,abc,Company Supervisor,abc,,abc,N/A
-A-00003,abc,abc,abc,N/A,Academic Supervisor,,,,Not Placed
